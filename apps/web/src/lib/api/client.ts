@@ -1,0 +1,381 @@
+import { supabase } from '@/lib/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+// Type definitions
+type WorkEntry = Database['public']['Tables']['work_entries']['Row'];
+type Target = Database['public']['Tables']['targets']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type GeneratedContent = Database['public']['Tables']['generated_content']['Row'];
+
+interface APIError {
+  error: string;
+  message?: string;
+  status: number;
+}
+
+class APIClientError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code: string
+  ) {
+    super(message);
+    this.name = 'APIClientError';
+  }
+}
+
+/**
+ * REST API Client for Sharper-Logs
+ *
+ * Handles all communication with the Hono REST API server.
+ * Automatically extracts JWT tokens from Supabase session for authentication.
+ */
+class APIClient {
+  private baseURL: string;
+
+  constructor() {
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  }
+
+  /**
+   * Extract JWT token from Supabase session
+   * Tokens are stored in httpOnly cookies via @supabase/ssr
+   */
+  private async getAuthToken(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }
+
+  /**
+   * Make authenticated request to REST API
+   */
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = await this.getAuthToken();
+
+    if (!token) {
+      throw new APIClientError('No authentication token', 401, 'UNAUTHORIZED');
+    }
+
+    const headers = new Headers(options.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+
+    // Only set Content-Type for non-FormData requests
+    if (!(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData: APIError = await response.json().catch(() => ({
+        error: 'Unknown Error',
+        message: response.statusText,
+        status: response.status,
+      }));
+
+      throw new APIClientError(
+        errorData.message || errorData.error,
+        errorData.status,
+        errorData.error
+      );
+    }
+
+    return response.json();
+  }
+
+  // ========================================
+  // Work Entries
+  // ========================================
+
+  async getWorkEntries() {
+    return this.request<{ entries: WorkEntry[] }>('/api/work-entries');
+  }
+
+  async createWorkEntry(data: {
+    redacted_summary: string;
+    encrypted_original: string;
+    skills?: string[];
+    achievements?: string[];
+    metrics?: Record<string, unknown>;
+    category?: string;
+    target_ids?: string[];
+  }) {
+    return this.request<WorkEntry>('/api/work-entries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getWorkEntry(id: string) {
+    return this.request<{ entry: WorkEntry }>(`/api/work-entries/${id}`);
+  }
+
+  async deleteWorkEntry(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/api/work-entries/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================================
+  // Targets
+  // ========================================
+
+  async getTargets(isActive?: boolean) {
+    const params = isActive !== undefined ? `?is_active=${isActive}` : '';
+    return this.request<{ data: Target[] }>(`/api/targets${params}`);
+  }
+
+  async createTarget(data: {
+    name: string;
+    description?: string;
+    type?: 'kpi' | 'ksb' | 'sales_target' | 'goal';
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    currency_code?: string;
+    deadline?: string;
+    source_document_id?: string;
+  }) {
+    return this.request<Target>('/api/targets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTarget(id: string, data: {
+    name?: string;
+    description?: string;
+    type?: 'kpi' | 'ksb' | 'sales_target' | 'goal';
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    deadline?: string;
+    is_active?: boolean;
+  }) {
+    return this.request<Target>(`/api/targets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async incrementTargetProgress(id: string, incrementBy: number = 1) {
+    return this.request<{ id: string; current_value: number; message: string }>(
+      `/api/targets/${id}/progress`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ incrementBy }),
+      }
+    );
+  }
+
+  async softDeleteTarget(id: string) {
+    return this.request<{ success: boolean; message: string }>(
+      `/api/targets/${id}/soft-delete`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async restoreTarget(id: string) {
+    return this.request<Target>(`/api/targets/${id}/restore`, { method: 'PATCH' });
+  }
+
+  async getTargetEvidence(targetId: string) {
+    return this.request<{ data: any[] }>(`/api/targets/${targetId}/evidence`);
+  }
+
+  // ========================================
+  // Profile
+  // ========================================
+
+  async getProfile() {
+    return this.request<Profile>('/api/profile');
+  }
+
+  async updateProfile(data: {
+    employmentStatus?: 'employed' | 'job_seeking' | 'student' | 'apprentice';
+    industry?: string;
+    studyField?: string;
+  }) {
+    return this.request<Profile>('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateIndustry(industry: string) {
+    return this.request<Profile>('/api/profile/industry', {
+      method: 'PATCH',
+      body: JSON.stringify({ industry }),
+    });
+  }
+
+  async updateEmploymentStatus(employmentStatus: 'employed' | 'job_seeking' | 'student' | 'apprentice') {
+    return this.request<Profile>('/api/profile/employment-status', {
+      method: 'PATCH',
+      body: JSON.stringify({ employmentStatus }),
+    });
+  }
+
+  async updateStudyField(studyField: string) {
+    return this.request<Profile>('/api/profile/study-field', {
+      method: 'PATCH',
+      body: JSON.stringify({ studyField }),
+    });
+  }
+
+  async completeOnboarding(data: {
+    employmentStatus: 'employed' | 'job_seeking' | 'student' | 'apprentice';
+    industry: string;
+    studyField?: string;
+  }) {
+    return this.request<Profile>('/api/profile/onboarding', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ========================================
+  // Generated Content
+  // ========================================
+
+  async getGeneratedContent() {
+    return this.request<{ data: GeneratedContent[] }>('/api/generated-content');
+  }
+
+  async saveGeneratedContent(data: {
+    type: string;
+    prompt: string;
+    content: string;
+    work_entry_ids?: string[];
+  }) {
+    return this.request<GeneratedContent>('/api/generated-content', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteGeneratedContent(id: string) {
+    return this.request<{ success: boolean }>(`/api/generated-content/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================================
+  // Work Entry Targets
+  // ========================================
+
+  async linkWorkEntryToTarget(data: {
+    work_entry_id: string;
+    target_id: string;
+    contribution_value?: number;
+    contribution_note?: string;
+    smart_data?: {
+      specific?: string;
+      measurable?: string;
+      achievable?: string;
+      relevant?: string;
+      timeBound?: string;
+    };
+  }) {
+    return this.request<any>('/api/work-entry-targets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ========================================
+  // AI Operations
+  // ========================================
+
+  async generateContent(data: {
+    prompt: string;
+    type: string;
+    workEntries?: WorkEntry[];
+    industry: string;
+  }) {
+    return this.request<{ content: string; error?: string }>('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async logChat(data: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    exchangeCount?: number;
+    industry: string;
+    targets?: Target[];
+  }) {
+    return this.request<{
+      message: string;
+      extractedData?: {
+        skills?: string[];
+        achievements?: string[];
+        metrics?: Record<string, unknown>;
+        category?: string;
+      };
+      shouldSummarize?: boolean;
+    }>('/api/ai/log-chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async summarizeConversation(data: {
+    conversation: Array<{ role: 'user' | 'assistant'; content: string }>;
+    extractedData?: {
+      skills?: string[];
+      achievements?: string[];
+      metrics?: Record<string, unknown>;
+      category?: string;
+    };
+    industry: string;
+    targets?: Target[];
+    employmentStatus?: string;
+  }) {
+    return this.request<{
+      redactedSummary: string;
+      skills: string[];
+      achievements: string[];
+      metrics: Record<string, unknown>;
+      category: string;
+      targetMappings?: Array<{
+        targetId: string;
+        contributionValue?: number;
+        contributionNote?: string;
+        smartData?: {
+          specific: string;
+          measurable: string;
+          achievable: string;
+          relevant: string;
+          timeBound: string;
+        };
+      }>;
+    }>('/api/ai/summarize', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async extractTargets(filePath: string) {
+    return this.request<{
+      targets: Array<{
+        title: string;
+        description: string;
+        type: string;
+        target_value?: number;
+      }>;
+    }>('/api/ai/extract-targets', {
+      method: 'POST',
+      body: JSON.stringify({ filePath }),
+    });
+  }
+}
+
+// Export singleton instance
+export const apiClient = new APIClient();
+
+// Export error class for error handling
+export { APIClientError };

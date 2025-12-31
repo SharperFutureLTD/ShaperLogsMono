@@ -1,0 +1,135 @@
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { swaggerUI } from '@hono/swagger-ui';
+import type { AuthContext } from '../middleware/auth';
+import workEntriesRoutes from '../routes/work-entries';
+import targetsRoutes from '../routes/targets';
+import profileRoutes from '../routes/profile';
+import generatedContentRoutes from '../routes/generated-content';
+import workEntryTargetsRoutes from '../routes/work-entry-targets';
+import aiGenerateRoutes from '../routes/ai/generate';
+import aiLogChatRoutes from '../routes/ai/log-chat';
+import aiSummarizeRoutes from '../routes/ai/summarize';
+import aiExtractTargetsRoutes from '../routes/ai/extract-targets';
+
+// Create OpenAPI app
+export const app = new OpenAPIHono<AuthContext>();
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
+app.use('/*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
+// Logger middleware
+app.use('/*', logger());
+
+// Health check endpoint (no auth required)
+app.openapi(
+  {
+    method: 'get',
+    path: '/api/health',
+    responses: {
+      200: {
+        description: 'Server is healthy',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+                timestamp: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  (c) => {
+    return c.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+// Register routes
+app.route('/', workEntriesRoutes);
+app.route('/', targetsRoutes);
+app.route('/', profileRoutes);
+app.route('/', generatedContentRoutes);
+app.route('/', workEntryTargetsRoutes);
+
+// Register AI routes
+app.route('/', aiGenerateRoutes);
+app.route('/', aiLogChatRoutes);
+app.route('/', aiSummarizeRoutes);
+app.route('/', aiExtractTargetsRoutes);
+
+// API Documentation with Swagger UI
+app.get('/api/docs', swaggerUI({
+  url: '/api/openapi.json',
+}));
+
+// OpenAPI JSON spec
+app.doc('/api/openapi.json', {
+  openapi: '3.1.0',
+  info: {
+    title: 'Sharper-Logs API',
+    version: '1.0.0',
+    description: 'REST API for work logging, AI content generation, and target tracking',
+  },
+  servers: [
+    {
+      url: 'http://localhost:3001',
+      description: 'Development server',
+    },
+    {
+      url: 'https://api.sharper-logs.com',
+      description: 'Production server',
+    },
+  ],
+  components: {
+    securitySchemes: {
+      BearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Supabase Auth JWT token',
+      },
+    },
+  },
+  security: [
+    {
+      BearerAuth: [],
+    },
+  ],
+});
+
+// 404 handler
+app.notFound((c) => {
+  return c.json({
+    error: 'Not Found',
+    message: `Route ${c.req.path} not found`,
+    status: 404,
+  }, 404);
+});
+
+// Error handler
+app.onError((err, c) => {
+  console.error(`Error: ${err.message}`);
+  return c.json({
+    error: 'Internal Server Error',
+    message: err.message,
+    status: 500,
+  }, 500);
+});
+
+export default app;

@@ -1,0 +1,33 @@
+{
+  "name": "@sharper-logs/api",
+  "version": "1.0.0",
+  "description": "REST API for Sharper-Logs with OpenAPI documentation",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit",
+    "openapi": "tsx src/scripts/export-openapi.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@google/generative-ai": "^0.17.0",
+    "@hono/node-server": "^1.12.0",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^0.15.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.0",
+    "hono": "^4.5.0",
+    "openai": "^4.57.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}
