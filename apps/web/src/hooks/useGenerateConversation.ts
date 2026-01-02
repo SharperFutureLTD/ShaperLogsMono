@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useMutation } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import { useWorkEntries } from '@/hooks/useWorkEntries';
 import { useGeneratedContent } from '@/hooks/useGeneratedContent';
 import { useProfile } from '@/hooks/useProfile';
@@ -27,25 +28,9 @@ export function useGenerateConversation() {
     prompt: '',
   });
 
-  const setSelectedType = useCallback((type: GenerateType) => {
-    setState(prev => ({ ...prev, selectedType: type }));
-  }, []);
-
-  const setPrompt = useCallback((prompt: string) => {
-    setState(prev => ({ ...prev, prompt }));
-  }, []);
-
-  const generate = useCallback(async (customPrompt?: string) => {
-    const promptToUse = customPrompt || state.prompt;
-
-    if (!promptToUse.trim()) {
-      toast.error('Please enter a prompt');
-      return null;
-    }
-
-    setState(prev => ({ ...prev, isGenerating: true, generatedContent: null }));
-
-    try {
+  // GENERATE CONTENT MUTATION (migrated from Edge Function to REST API)
+  const generateMutation = useMutation({
+    mutationFn: async (promptToUse: string) => {
       // Prepare work entries for context, sorted by date (newest first)
       const entriesForContext = [...workEntries]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -58,33 +43,60 @@ export function useGenerateConversation() {
           created_at: entry.created_at,
         }));
 
-      const { data, error } = await supabase.functions.invoke('ai-generate', {
-        body: {
-          prompt: promptToUse,
-          type: state.selectedType,
-          workEntries: entriesForContext,
-          industry: profile?.industry || 'general',
-        },
+      // Call REST API instead of Edge Function
+      const response = await apiClient.generateContent({
+        prompt: promptToUse,
+        type: state.selectedType,
+        workEntries: entriesForContext,
+        industry: profile?.industry || 'general',
       });
 
-      if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
+      if (response.error) {
+        throw new Error(response.error);
       }
 
-      const content = data.content;
-      setState(prev => ({ ...prev, generatedContent: content, isGenerating: false }));
+      return response.content;
+    },
 
-      return content;
-    } catch (error) {
+    onMutate: () => {
+      setState(prev => ({ ...prev, isGenerating: true, generatedContent: null }));
+    },
+
+    onSuccess: (content) => {
+      setState(prev => ({ ...prev, generatedContent: content, isGenerating: false }));
+    },
+
+    onError: (error: Error) => {
       console.error('Error generating content:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
+      const errorMessage = error.message || 'Failed to generate content';
       toast.error(errorMessage);
       setState(prev => ({ ...prev, isGenerating: false }));
+    },
+  });
+
+  const setSelectedType = useCallback((type: GenerateType) => {
+    setState(prev => ({ ...prev, selectedType: type }));
+  }, []);
+
+  const setPrompt = useCallback((prompt: string) => {
+    setState(prev => ({ ...prev, prompt }));
+  }, []);
+
+  const generate = useCallback(async (customPrompt?: string): Promise<string | null> => {
+    const promptToUse = customPrompt || state.prompt;
+
+    if (!promptToUse.trim()) {
+      toast.error('Please enter a prompt');
       return null;
     }
-  }, [state.prompt, state.selectedType, workEntries]);
+
+    try {
+      const content = await generateMutation.mutateAsync(promptToUse);
+      return content;
+    } catch (error) {
+      return null;
+    }
+  }, [state.prompt, generateMutation]);
 
   const save = useCallback(async () => {
     if (!state.generatedContent) {
@@ -128,6 +140,7 @@ export function useGenerateConversation() {
     });
   }, []);
 
+  // Return exact same interface
   return {
     ...state,
     workEntriesCount: workEntries.length,
