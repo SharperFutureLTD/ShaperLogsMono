@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
+import { getRedactionRulesForContext } from '../../ai/prompts/redaction-rules';
+import { redactPII } from '../../utils/redaction';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -65,8 +67,11 @@ app.openapi(logChatRoute, async (c) => {
     // Build system prompt for conversational logging
     const systemPrompt = `You are a helpful AI assistant for logging work accomplishments in the ${industry} industry.
 
+${getRedactionRulesForContext('chat')}
+
 Your role:
 - Ask friendly, conversational questions to help users document their work
+- REDACT any sensitive information the user shares in your responses
 - Extract key details: tasks completed, skills used, achievements, metrics
 - Keep the conversation natural and encouraging
 - After ${maxExchanges} exchanges, you'll help create a summary
@@ -76,10 +81,13 @@ Guidelines:
 - Be specific about what information you need
 - Acknowledge and validate user responses
 - Look for quantifiable metrics and concrete achievements
+- If user mentions PII (names, companies, amounts), acknowledge but use placeholders in your response
 ${targets?.length ? `- Reference these active targets when relevant: ${targets.map((t: any) => t.name).join(', ')}` : ''}
 
 Current exchange: ${exchangeCount + 1} of ${maxExchanges}
-${shouldSummarize ? '\nThis is the final exchange. Acknowledge their response and let them know you\'re ready to create a summary.' : ''}`;
+${shouldSummarize ? '\nThis is the final exchange. Acknowledge their response and let them know you\'re ready to create a summary.' : ''}
+
+IMPORTANT: Apply REDACTION in real-time as you respond. Don't echo back sensitive information.`;
 
     // Get AI provider and generate response
     const aiProvider = AIProviderFactory.getProvider();
@@ -108,8 +116,11 @@ ${shouldSummarize ? '\nThis is the final exchange. Acknowledge their response an
       };
     }
 
+    // Apply post-processing redaction to AI response
+    const safeMessage = redactPII(response.content);
+
     return c.json({
-      message: response.content,
+      message: safeMessage,
       extractedData,
       shouldSummarize,
     });

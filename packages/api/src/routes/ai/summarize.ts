@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
+import { getRedactionRulesForContext } from '../../ai/prompts/redaction-rules';
+import { redactJSON, detectUnredactedPII } from '../../utils/redaction';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -75,19 +77,22 @@ app.openapi(summarizeRoute, async (c) => {
     // Build system prompt for summarization
     const systemPrompt = `You are an AI assistant that creates professional work entry summaries for ${industry} professionals.
 
+${getRedactionRulesForContext('summary')}
+
 Your task is to create a comprehensive summary from a conversation about work accomplishments.
 
 Guidelines:
 1. Create a clear, professional summary (2-3 sentences) of what was accomplished
-2. Extract specific skills that were used or developed
-3. Identify key achievements with measurable impact
-4. Note any relevant metrics or KPIs
-5. Categorize the work appropriately for ${industry}
-${targets?.length ? `6. Identify which targets this work contributes to: ${targets.map((t: any) => `${t.name} (${t.type})`).join(', ')}` : ''}
+2. APPLY REDACTION RULES - Replace ALL sensitive information with placeholders
+3. Extract specific skills that were used or developed
+4. Identify key achievements with measurable impact (keep counts, redact amounts)
+5. Note any relevant metrics or KPIs (keep metric names and counts, redact sensitive values)
+6. Categorize the work appropriately for ${industry}
+${targets?.length ? `7. Identify which targets this work contributes to: ${targets.map((t: any) => `${t.name} (${t.type})`).join(', ')}` : ''}
 
 Return a JSON object with this structure:
 {
-  "summary": "Professional summary of work accomplished",
+  "summary": "Professional summary of work accomplished (WITH REDACTION APPLIED)",
   "skills": ["skill1", "skill2"],
   "achievements": ["achievement1", "achievement2"],
   "metrics": {"metric_name": value},
@@ -95,7 +100,8 @@ Return a JSON object with this structure:
   "targetMappings": [{"targetId": "id", "contributionNote": "how it contributes"}]
 }
 
-Be specific and quantifiable where possible. Focus on impact and outcomes.`;
+Be specific and quantifiable where possible. Focus on impact and outcomes.
+REMEMBER: Apply REDACTION to all sensitive information in the summary, achievements, and metrics.`;
 
     const userMessage = `Summarize this work conversation:\n\n${conversationText}`;
 
@@ -140,14 +146,26 @@ Be specific and quantifiable where possible. Focus on impact and outcomes.`;
       };
     }
 
-    return c.json({
+    // Build final response
+    const finalResponse = {
       redactedSummary: parsedResponse.summary || response.content,
       skills: parsedResponse.skills || [],
       achievements: parsedResponse.achievements || [],
       metrics: parsedResponse.metrics || {},
       category: parsedResponse.category,
       targetMappings: parsedResponse.targetMappings || [],
-    });
+    };
+
+    // Apply post-processing redaction as fallback layer
+    const safeResponse = redactJSON(finalResponse);
+
+    // Validation: Log warnings if PII detected after redaction
+    const piiIssues = detectUnredactedPII(safeResponse.redactedSummary);
+    if (piiIssues.length > 0) {
+      console.warn('⚠️ PII detected in summary after redaction:', piiIssues);
+    }
+
+    return c.json(safeResponse);
   } catch (error) {
     console.error('Summarize error:', error);
     return c.json(
