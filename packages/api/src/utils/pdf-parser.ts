@@ -1,4 +1,5 @@
-import pdfParse from 'pdf-parse';
+// pdf-parse is a CommonJS module, use require
+const pdfParse = require('pdf-parse');
 
 export interface PDFParseResult {
   text: string;

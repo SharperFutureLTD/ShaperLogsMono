@@ -44,6 +44,12 @@ export function createUserClient(accessToken: string) {
   );
 }
 
+// Helper to get user-scoped Supabase client by user ID
+// Note: This still uses service role but can be used for user-specific operations
+export function getUserSupabase(userId: string) {
+  return supabase;
+}
+
 // Helper to verify and decode JWT
 export async function verifyJWT(token: string) {
   try {

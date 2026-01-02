@@ -47,7 +47,7 @@ export class GeminiProvider implements IAIProvider {
           temperature: request.temperature || DEFAULT_TEMPERATURE,
           maxOutputTokens: request.maxTokens,
         },
-        systemInstruction: systemInstruction || undefined,
+        ...(systemInstruction && systemInstruction.trim() ? { systemInstruction } : {}),
       });
 
       const result = await chat.sendMessage(lastMessage?.content || '');

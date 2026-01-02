@@ -106,7 +106,7 @@ export const useTargets = () => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        return [optimisticTarget, ...(old || [])];
+        return [optimisticTarget, ...(Array.isArray(old) ? old : [])];
       });
 
       return { previousData };
