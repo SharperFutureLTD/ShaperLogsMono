@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import { apiClient } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -10,44 +13,22 @@ type GeneratedContentInsert = Database['public']['Tables']['generated_content'][
 
 export const useGeneratedContent = () => {
   const { user } = useAuth();
-  const [content, setContent] = useState<GeneratedContent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchContent = useCallback(async () => {
-    if (!user) {
-      setContent([]);
-      setLoading(false);
-      return;
-    }
+  // Fetch generated content via REST API
+  const {
+    data,
+    isLoading: loading,
+    error: queryError,
+    refetch: reactQueryRefetch
+  } = useQuery({
+    queryKey: queryKeys.generatedContent.lists(),
+    queryFn: () => apiClient.getGeneratedContent(),
+    enabled: !!user,
+    select: (response) => response.data,
+  });
 
-    try {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('generated_content')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching generated content:', fetchError);
-        setError(fetchError.message);
-      } else {
-        setContent(data || []);
-      }
-    } catch (err) {
-      console.error('Error in fetchContent:', err);
-      setError('Failed to fetch generated content');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchContent();
-  }, [fetchContent]);
-
-  // Set up real-time subscription
+  // Real-time subscription for cache invalidation
   useEffect(() => {
     if (!user) return;
 
@@ -61,20 +42,9 @@ export const useGeneratedContent = () => {
           table: 'generated_content',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setContent((current) => [payload.new as GeneratedContent, ...current]);
-          } else if (payload.eventType === 'DELETE') {
-            setContent((current) =>
-              current.filter((item) => item.id !== payload.old.id)
-            );
-          } else if (payload.eventType === 'UPDATE') {
-            setContent((current) =>
-              current.map((item) =>
-                item.id === payload.new.id ? (payload.new as GeneratedContent) : item
-              )
-            );
-          }
+        () => {
+          // Invalidate cache on any change
+          queryClient.invalidateQueries({ queryKey: queryKeys.generatedContent.all });
         }
       )
       .subscribe();
@@ -82,59 +52,103 @@ export const useGeneratedContent = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, queryClient]);
 
-  const saveContent = async (data: Omit<GeneratedContentInsert, 'user_id'>): Promise<boolean> => {
+  // SAVE MUTATION
+  const saveMutation = useMutation({
+    mutationFn: (data: Omit<GeneratedContentInsert, 'user_id'>) =>
+      apiClient.saveGeneratedContent(data),
+
+    onMutate: async (newContent) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.generatedContent.lists() });
+      const previousData = queryClient.getQueryData(queryKeys.generatedContent.lists());
+
+      // Optimistic: add immediately
+      queryClient.setQueryData(queryKeys.generatedContent.lists(), (old: any) => {
+        const optimisticContent: GeneratedContent = {
+          id: `temp-${Date.now()}`,
+          user_id: user!.id,
+          type: newContent.type,
+          prompt: newContent.prompt,
+          content: newContent.content,
+          work_entry_ids: newContent.work_entry_ids || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return [optimisticContent, ...(old || [])];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error saving generated content:', err);
+      queryClient.setQueryData(queryKeys.generatedContent.lists(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.generatedContent.all });
+    },
+  });
+
+  // DELETE MUTATION
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiClient.deleteGeneratedContent(id),
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.generatedContent.lists() });
+      const previousData = queryClient.getQueryData(queryKeys.generatedContent.lists());
+
+      // Optimistic: remove immediately
+      queryClient.setQueryData(queryKeys.generatedContent.lists(), (old: GeneratedContent[] | undefined) => {
+        return old?.filter(item => item.id !== id) || [];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, id, context) => {
+      console.error('Error deleting generated content:', err);
+      queryClient.setQueryData(queryKeys.generatedContent.lists(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.generatedContent.all });
+    },
+  });
+
+  // Backward-compatible wrappers
+  const saveContent = useCallback(async (data: Omit<GeneratedContentInsert, 'user_id'>): Promise<boolean> => {
     if (!user) return false;
-
     try {
-      const { error: insertError } = await supabase
-        .from('generated_content')
-        .insert({
-          ...data,
-          user_id: user.id,
-        });
-
-      if (insertError) {
-        console.error('Error saving generated content:', insertError);
-        setError(insertError.message);
-        return false;
-      }
-
+      await saveMutation.mutateAsync(data);
       return true;
     } catch (err) {
       console.error('Error in saveContent:', err);
-      setError('Failed to save generated content');
       return false;
     }
-  };
+  }, [user, saveMutation]);
 
-  const deleteContent = async (id: string): Promise<boolean> => {
+  const deleteContent = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const { error: deleteError } = await supabase
-        .from('generated_content')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) {
-        console.error('Error deleting generated content:', deleteError);
-        setError(deleteError.message);
-        return false;
-      }
-
+      await deleteMutation.mutateAsync(id);
       return true;
     } catch (err) {
       console.error('Error in deleteContent:', err);
-      setError('Failed to delete generated content');
       return false;
     }
-  };
+  }, [deleteMutation]);
 
+  const refetch = useCallback(async () => {
+    await reactQueryRefetch();
+  }, [reactQueryRefetch]);
+
+  // Return exact same interface
   return {
-    content,
+    content: data || [],
     loading,
-    error,
-    refetch: fetchContent,
+    error: queryError?.message || null,
+    refetch,
     saveContent,
     deleteContent,
   };
