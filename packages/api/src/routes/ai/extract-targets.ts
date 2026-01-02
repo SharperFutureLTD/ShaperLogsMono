@@ -61,12 +61,27 @@ app.openapi(extractTargetsRoute, async (c) => {
       .eq('user_id', userId)
       .single();
 
-    if (!document || !document.parsed_content) {
+    // Document not found
+    if (!document) {
       return c.json(
         {
+          error: 'Document not found',
+          message: `No document found at path: ${filePath}`,
           targets: [],
         },
         404
+      );
+    }
+
+    // Document found but not parsed (shouldn't happen after PDF parsing implementation)
+    if (!document.parsed_content) {
+      return c.json(
+        {
+          error: 'Document not parsed',
+          message: 'Document exists but has not been parsed yet. Please re-upload the document.',
+          targets: [],
+        },
+        422  // 422 Unprocessable Entity
       );
     }
 

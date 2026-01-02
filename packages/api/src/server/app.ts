@@ -12,6 +12,7 @@ import aiGenerateRoutes from '../routes/ai/generate';
 import aiLogChatRoutes from '../routes/ai/log-chat';
 import aiSummarizeRoutes from '../routes/ai/summarize';
 import aiExtractTargetsRoutes from '../routes/ai/extract-targets';
+import documentsUploadRoutes from '../routes/documents/upload';
 
 // Create OpenAPI app
 export const app = new OpenAPIHono<AuthContext>();
@@ -72,6 +73,9 @@ app.route('/', aiGenerateRoutes);
 app.route('/', aiLogChatRoutes);
 app.route('/', aiSummarizeRoutes);
 app.route('/', aiExtractTargetsRoutes);
+
+// Register document routes
+app.route('/', documentsUploadRoutes);
 
 // API Documentation with Swagger UI
 app.get('/api/docs', swaggerUI({

@@ -27,41 +27,43 @@ export const useTargetDocuments = () => {
   const [extractedTargets, setExtractedTargets] = useState<ExtractedTarget[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // UPLOAD DOCUMENT MUTATION
+  // UPLOAD DOCUMENT MUTATION (uses REST API with PDF parsing)
   const uploadMutation = useMutation({
     mutationFn: async ({ file, documentType }: { file: File; documentType?: string }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Get JWT token for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
 
-      // Upload file to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('target-documents')
-        .upload(fileName, file);
-
-      if (uploadError) {
-        throw uploadError;
+      if (!token) {
+        throw new Error('Not authenticated');
       }
 
-      // Insert document record in database
-      const { data: doc, error: insertError } = await supabase
-        .from('target_documents')
-        .insert({
-          user_id: user.id,
-          file_name: file.name,
-          file_path: data.path,
-          document_type: documentType || 'targets',
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw insertError;
+      // Create FormData for multipart/form-data upload
+      const formData = new FormData();
+      formData.append('file', file);
+      if (documentType) {
+        formData.append('documentType', documentType);
       }
 
+      // Call REST API upload endpoint (handles PDF parsing + storage + database)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/documents/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload document');
+      }
+
+      const doc = await response.json();
       return doc as TargetDocument;
     },
 
