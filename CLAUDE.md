@@ -16,10 +16,17 @@
   - ❌ voice-to-text endpoint missing
 
 - 🔄 **Phase 2 IN PROGRESS:** Web App Integration
-  - ❌ React Query infrastructure (Chunk 1)
-  - ❌ Migrate 8 hooks from Supabase → REST API (Chunks 2-6)
-  - ❌ Enhance 4 AI endpoints + add voice-to-text (Chunks 7-9)
-  - ❌ Real-time updates (Chunk 10)
+  - ✅ React Query infrastructure (Chunk 1) **COMPLETE**
+  - ✅ Migrate ALL hooks from Supabase → REST API (Chunks 3-9) **COMPLETE**
+    - ✅ Chunk 3: useTargets (React Query + optimistic updates + undo + real-time)
+    - ✅ Chunk 4: useProfile (React Query + 5 mutations)
+    - ✅ Chunk 5: useGeneratedContent (React Query + optimistic CRUD)
+    - ✅ Chunk 6: useTargetEvidence (React Query + complex join queries)
+    - ✅ Chunk 7: useTargetDocuments (React Query + file upload + AI extraction)
+    - ✅ Chunk 8: useLogConversation (CRITICAL - session persistence preserved)
+    - ✅ Chunk 9: useGenerateConversation (React Query + AI content generation)
+  - ❌ Enhance 4 AI endpoints + add voice-to-text (Chunks 10-12)
+  - ❌ Real-time updates (Chunk 13)
 
 - 🎯 **Post-Migration:**
   - Admin backoffice at `apps/admin`
