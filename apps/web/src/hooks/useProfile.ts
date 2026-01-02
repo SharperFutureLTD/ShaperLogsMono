@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { EmploymentStatus } from '@/components/StatusSelector';
 
@@ -18,223 +20,243 @@ interface Profile {
 
 export const useProfile = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
+  // Fetch profile via REST API
+  const {
+    data: profile,
+    isLoading: loading,
+    error: queryError,
+    refetch: reactQueryRefetch
+  } = useQuery({
+    queryKey: queryKeys.profile.detail(),
+    queryFn: () => apiClient.getProfile(),
+    enabled: !!user,
+  });
 
+  // UPDATE INDUSTRY MUTATION
+  const updateIndustryMutation = useMutation({
+    mutationFn: (industry: string) => apiClient.updateIndustry(industry),
+
+    onMutate: async (industry) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
+      const previousData = queryClient.getQueryData(queryKeys.profile.detail());
+
+      queryClient.setQueryData(queryKeys.profile.detail(), (old: Profile | undefined) => {
+        return old ? { ...old, industry } : old;
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating industry:', err);
+      queryClient.setQueryData(queryKeys.profile.detail(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+    },
+  });
+
+  // UPDATE EMPLOYMENT STATUS MUTATION
+  const updateEmploymentStatusMutation = useMutation({
+    mutationFn: (employmentStatus: EmploymentStatus) =>
+      apiClient.updateEmploymentStatus(employmentStatus),
+
+    onMutate: async (employmentStatus) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
+      const previousData = queryClient.getQueryData(queryKeys.profile.detail());
+
+      queryClient.setQueryData(queryKeys.profile.detail(), (old: Profile | undefined) => {
+        return old ? { ...old, employment_status: employmentStatus } : old;
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating employment status:', err);
+      queryClient.setQueryData(queryKeys.profile.detail(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+    },
+  });
+
+  // UPDATE STUDY FIELD MUTATION
+  const updateStudyFieldMutation = useMutation({
+    mutationFn: (studyField: string) => apiClient.updateStudyField(studyField),
+
+    onMutate: async (studyField) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
+      const previousData = queryClient.getQueryData(queryKeys.profile.detail());
+
+      queryClient.setQueryData(queryKeys.profile.detail(), (old: Profile | undefined) => {
+        return old ? { ...old, study_field: studyField } : old;
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating study field:', err);
+      queryClient.setQueryData(queryKeys.profile.detail(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+    },
+  });
+
+  // UPDATE PROFILE MUTATION (bulk update)
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: {
+      employmentStatus?: EmploymentStatus;
+      industry?: string | null;
+      studyField?: string | null;
+    }) => apiClient.updateProfile(data),
+
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
+      const previousData = queryClient.getQueryData(queryKeys.profile.detail());
+
+      queryClient.setQueryData(queryKeys.profile.detail(), (old: Profile | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          ...(data.employmentStatus !== undefined && { employment_status: data.employmentStatus }),
+          ...(data.industry !== undefined && { industry: data.industry }),
+          ...(data.studyField !== undefined && { study_field: data.studyField }),
+        };
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating profile:', err);
+      queryClient.setQueryData(queryKeys.profile.detail(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+    },
+  });
+
+  // COMPLETE ONBOARDING MUTATION
+  const completeOnboardingMutation = useMutation({
+    mutationFn: (data: {
+      employmentStatus: EmploymentStatus;
+      industry: string;
+      studyField?: string;
+    }) => apiClient.completeOnboarding(data),
+
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
+      const previousData = queryClient.getQueryData(queryKeys.profile.detail());
+
+      queryClient.setQueryData(queryKeys.profile.detail(), (old: Profile | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          employment_status: data.employmentStatus,
+          industry: data.industry,
+          study_field: data.studyField || null,
+        };
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error completing onboarding:', err);
+      queryClient.setQueryData(queryKeys.profile.detail(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+    },
+  });
+
+  // Backward-compatible wrappers
+  const updateIndustry = useCallback(async (industry: string): Promise<boolean> => {
     try {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching profile:', fetchError);
-        setError(fetchError.message);
-      } else {
-        setProfile(data as Profile);
-      }
-    } catch (err) {
-      console.error('Error in fetchProfile:', err);
-      setError('Failed to fetch profile');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const updateIndustry = async (industry: string): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ industry })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating industry:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      setProfile(prev => prev ? { ...prev, industry } : null);
+      await updateIndustryMutation.mutateAsync(industry);
       return true;
     } catch (err) {
       console.error('Error in updateIndustry:', err);
-      setError('Failed to update industry');
       return false;
     }
-  };
+  }, [updateIndustryMutation]);
 
-  const updateEmploymentStatus = async (employmentStatus: EmploymentStatus): Promise<boolean> => {
-    if (!user) return false;
-
+  const updateEmploymentStatus = useCallback(async (employmentStatus: EmploymentStatus): Promise<boolean> => {
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ employment_status: employmentStatus })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating employment status:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      setProfile(prev => prev ? { ...prev, employment_status: employmentStatus } : null);
+      await updateEmploymentStatusMutation.mutateAsync(employmentStatus);
       return true;
     } catch (err) {
       console.error('Error in updateEmploymentStatus:', err);
-      setError('Failed to update employment status');
       return false;
     }
-  };
+  }, [updateEmploymentStatusMutation]);
 
-  const updateStudyField = async (studyField: string): Promise<boolean> => {
-    if (!user) return false;
-
+  const updateStudyField = useCallback(async (studyField: string): Promise<boolean> => {
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ study_field: studyField })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating study field:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      setProfile(prev => prev ? { ...prev, study_field: studyField } : null);
+      await updateStudyFieldMutation.mutateAsync(studyField);
       return true;
     } catch (err) {
       console.error('Error in updateStudyField:', err);
-      setError('Failed to update study field');
       return false;
     }
-  };
+  }, [updateStudyFieldMutation]);
 
-  const updateProfile = async (data: {
+  const updateProfile = useCallback(async (data: {
     employmentStatus?: EmploymentStatus;
     industry?: string | null;
     studyField?: string | null;
   }): Promise<boolean> => {
-    if (!user) return false;
-
     try {
-      const updateData: {
-        employment_status?: EmploymentStatus;
-        industry?: string | null;
-        study_field?: string | null;
-      } = {};
-
-      if (data.employmentStatus !== undefined) {
-        updateData.employment_status = data.employmentStatus;
-      }
-      if (data.industry !== undefined) {
-        updateData.industry = data.industry;
-      }
-      if (data.studyField !== undefined) {
-        updateData.study_field = data.studyField;
-      }
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating profile:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      setProfile(prev => prev ? {
-        ...prev,
-        ...(data.employmentStatus !== undefined && { employment_status: data.employmentStatus }),
-        ...(data.industry !== undefined && { industry: data.industry }),
-        ...(data.studyField !== undefined && { study_field: data.studyField }),
-      } : null);
+      await updateProfileMutation.mutateAsync(data);
       return true;
     } catch (err) {
       console.error('Error in updateProfile:', err);
-      setError('Failed to update profile');
       return false;
     }
-  };
+  }, [updateProfileMutation]);
 
-  const completeOnboarding = async (data: {
+  const completeOnboarding = useCallback(async (data: {
     employmentStatus: EmploymentStatus;
     industry: string;
     studyField?: string;
   }): Promise<boolean> => {
-    if (!user) return false;
-
     try {
-      const updateData: {
-        employment_status: EmploymentStatus;
-        industry: string;
-        study_field?: string;
-      } = {
-        employment_status: data.employmentStatus,
-        industry: data.industry,
-      };
-
-      if (data.studyField) {
-        updateData.study_field = data.studyField;
-      }
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error completing onboarding:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      setProfile(prev => prev ? {
-        ...prev,
-        employment_status: data.employmentStatus,
-        industry: data.industry,
-        study_field: data.studyField || null,
-      } : null);
+      await completeOnboardingMutation.mutateAsync(data);
       return true;
     } catch (err) {
       console.error('Error in completeOnboarding:', err);
-      setError('Failed to complete onboarding');
       return false;
     }
-  };
+  }, [completeOnboardingMutation]);
+
+  const refetch = useCallback(async () => {
+    await reactQueryRefetch();
+  }, [reactQueryRefetch]);
 
   // Onboarding is needed if the user has no employment_status set
   const needsOnboarding = !loading && profile && !profile.employment_status;
 
+  // Return exact same interface
   return {
-    profile,
+    profile: profile || null,
     loading,
-    error,
+    error: queryError?.message || null,
     updateIndustry,
     updateEmploymentStatus,
     updateStudyField,
     updateProfile,
     completeOnboarding,
     needsOnboarding,
-    refetch: fetchProfile,
+    refetch,
   };
 };
