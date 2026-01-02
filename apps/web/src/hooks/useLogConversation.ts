@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import { apiClient } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from '@/hooks/useAuth';
 import { useEncryption } from '@/hooks/useEncryption';
 import { useProfile } from '@/hooks/useProfile';
@@ -24,6 +27,7 @@ export function useLogConversation() {
   const { encrypt } = useEncryption();
   const { profile } = useProfile();
   const { targets, updateTargetProgress } = useTargets();
+  const queryClient = useQueryClient();
 
   // State with simple defaults - hydrated from sessionStorage after mount
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,7 +43,7 @@ export function useLogConversation() {
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hydrate state from sessionStorage after mount (runs once)
+  // CRITICAL: Hydrate state from sessionStorage after mount (DO NOT MODIFY)
   useEffect(() => {
     try {
       const storedMessages = sessionStorage.getItem(STORAGE_KEYS.messages);
@@ -66,7 +70,7 @@ export function useLogConversation() {
     setIsHydrated(true);
   }, []);
 
-  // Persist state to sessionStorage whenever it changes (only after hydration)
+  // CRITICAL: Persist state to sessionStorage (DO NOT MODIFY)
   useEffect(() => {
     if (!isHydrated) return;
     sessionStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
@@ -92,24 +96,17 @@ export function useLogConversation() {
     sessionStorage.setItem(STORAGE_KEYS.summary, JSON.stringify(summary));
   }, [summary, isHydrated]);
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!user) {
-      toast.error('Please sign in to log your work');
-      return;
-    }
+  // SEND MESSAGE MUTATION (migrated from Edge Function to REST API)
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const userMessage: Message = {
+        role: 'user',
+        content,
+        timestamp: new Date()
+      };
 
-    const userMessage: Message = {
-      role: 'user',
-      content,
-      timestamp: new Date()
-    };
+      const newMessages = [...messages, userMessage];
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setStatus('in_progress');
-    setIsLoading(true);
-
-    try {
       // Format messages for API
       const apiMessages = newMessages.map(m => ({
         role: m.role,
@@ -128,20 +125,28 @@ export function useLogConversation() {
         deadline: t.deadline
       }));
 
-      const { data, error } = await supabase.functions.invoke('ai-log-chat', {
-        body: {
-          messages: apiMessages,
-          exchangeCount,
-          industry: profile?.industry || 'general',
-          targets: activeTargets
-        }
+      // Call REST API instead of Edge Function
+      const response = await apiClient.logChat({
+        messages: apiMessages,
+        exchangeCount,
+        industry: profile?.industry || 'general',
+        targets: activeTargets
       });
 
-      if (error) throw error;
+      return { newMessages, response, userMessage };
+    },
+
+    onMutate: () => {
+      setStatus('in_progress');
+      setIsLoading(true);
+    },
+
+    onSuccess: (data) => {
+      const { newMessages, response, userMessage } = data;
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.message,
+        content: response.message,
         timestamp: new Date()
       };
 
@@ -149,33 +154,33 @@ export function useLogConversation() {
       setExchangeCount(prev => prev + 1);
 
       // Merge extracted data
-      if (data.extractedData) {
+      if (response.extractedData) {
         setExtractedData(prev => ({
-          skills: [...new Set([...prev.skills, ...(data.extractedData.skills || [])])],
-          achievements: [...new Set([...prev.achievements, ...(data.extractedData.achievements || [])])],
-          metrics: { ...prev.metrics, ...(data.extractedData.metrics || {}) },
-          category: data.extractedData.category || prev.category
+          skills: [...new Set([...prev.skills, ...(response.extractedData.skills || [])])],
+          achievements: [...new Set([...prev.achievements, ...(response.extractedData.achievements || [])])],
+          metrics: { ...prev.metrics, ...(response.extractedData.metrics || {}) },
+          category: response.extractedData.category || prev.category
         }));
       }
 
       // Check if we should summarize
-      if (data.shouldSummarize || exchangeCount >= MAX_EXCHANGES - 1) {
-        await generateSummary([...newMessages, assistantMessage]);
+      if (response.shouldSummarize || exchangeCount >= MAX_EXCHANGES - 1) {
+        summarizeMutation.mutate([...newMessages, assistantMessage]);
       }
 
-    } catch (err) {
+      setIsLoading(false);
+    },
+
+    onError: (err) => {
       console.error('Error in conversation:', err);
       toast.error('Failed to process message');
-    } finally {
       setIsLoading(false);
-    }
-  }, [user, messages, exchangeCount, profile?.industry, targets]);
+    },
+  });
 
-  const generateSummary = useCallback(async (conversationMessages: Message[]) => {
-    setStatus('summarizing');
-    setIsLoading(true);
-
-    try {
+  // GENERATE SUMMARY MUTATION (migrated from Edge Function to REST API)
+  const summarizeMutation = useMutation({
+    mutationFn: async (conversationMessages: Message[]) => {
       const conversation = conversationMessages.map(m => ({
         role: m.role,
         content: m.content
@@ -192,41 +197,44 @@ export function useLogConversation() {
         unit: t.unit
       }));
 
-      const { data, error } = await supabase.functions.invoke('ai-summarize', {
-        body: {
-          conversation,
-          extractedData,
-          industry: profile?.industry || 'general',
-          targets: activeTargets,
-          employmentStatus: profile?.employment_status
-        }
+      // Call REST API instead of Edge Function
+      const response = await apiClient.summarizeConversation({
+        conversation,
+        extractedData,
+        industry: profile?.industry || 'general',
+        targets: activeTargets,
+        employmentStatus: profile?.employment_status
       });
 
-      if (error) throw error;
+      return response;
+    },
 
+    onMutate: () => {
+      setStatus('summarizing');
+      setIsLoading(true);
+    },
+
+    onSuccess: (data) => {
       setSummary(data);
       setStatus('review');
-    } catch (err) {
+      setIsLoading(false);
+    },
+
+    onError: (err) => {
       console.error('Error generating summary:', err);
       toast.error('Failed to generate summary');
       setStatus('in_progress');
-    } finally {
       setIsLoading(false);
-    }
-  }, [extractedData, targets, profile?.industry]);
+    },
+  });
 
-  const updateSummary = useCallback((newSummary: string) => {
-    if (summary) {
-      setSummary({ ...summary, redactedSummary: newSummary });
-    }
-  }, [summary]);
+  // ACCEPT SUMMARY MUTATION (save to database with encryption)
+  const acceptSummaryMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !summary) {
+        throw new Error('User or summary not available');
+      }
 
-  const acceptSummary = useCallback(async () => {
-    if (!user || !summary) return;
-
-    setIsLoading(true);
-
-    try {
       // Encrypt the original conversation
       const originalContent = JSON.stringify(messages.map(m => ({
         role: m.role,
@@ -289,21 +297,58 @@ export function useLogConversation() {
         }
       }
 
+      return workEntry;
+    },
+
+    onMutate: () => {
+      setIsLoading(true);
+    },
+
+    onSuccess: () => {
       toast.success('Work logged successfully!');
       setStatus('completed');
+
+      // Invalidate work entries cache
+      queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
 
       // Reset conversation after a short delay
       setTimeout(() => {
         resetConversation();
       }, 1500);
 
-    } catch (err) {
+      setIsLoading(false);
+    },
+
+    onError: (err) => {
       console.error('Error saving entry:', err);
       toast.error('Failed to save work entry');
-    } finally {
       setIsLoading(false);
+    },
+  });
+
+  // Backward-compatible wrappers
+  const sendMessage = useCallback(async (content: string) => {
+    if (!user) {
+      toast.error('Please sign in to log your work');
+      return;
     }
-  }, [user, summary, messages, encrypt, updateTargetProgress]);
+    sendMessageMutation.mutate(content);
+  }, [user, sendMessageMutation]);
+
+  const generateSummary = useCallback(async (conversationMessages: Message[]) => {
+    summarizeMutation.mutate(conversationMessages);
+  }, [summarizeMutation]);
+
+  const updateSummary = useCallback((newSummary: string) => {
+    if (summary) {
+      setSummary({ ...summary, redactedSummary: newSummary });
+    }
+  }, [summary]);
+
+  const acceptSummary = useCallback(async () => {
+    acceptSummaryMutation.mutate();
+  }, [acceptSummaryMutation]);
 
   const resetConversation = useCallback(() => {
     setMessages([]);
@@ -323,6 +368,7 @@ export function useLogConversation() {
     }
   }, [messages, generateSummary]);
 
+  // Return exact same interface
   return {
     messages,
     status,
