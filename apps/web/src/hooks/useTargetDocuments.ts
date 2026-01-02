@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import { apiClient } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -18,35 +21,32 @@ interface ExtractedTarget {
 
 export const useTargetDocuments = () => {
   const { user } = useAuth();
-  const [uploading, setUploading] = useState(false);
-  const [extracting, setExtracting] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Extracted targets are temporary UI state, not server state
   const [extractedTargets, setExtractedTargets] = useState<ExtractedTarget[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadDocument = async (file: File, documentType?: string): Promise<TargetDocument | null> => {
-    if (!user) {
-      setError('User not authenticated');
-      return null;
-    }
-
-    try {
-      setUploading(true);
-      setError(null);
+  // UPLOAD DOCUMENT MUTATION
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, documentType }: { file: File; documentType?: string }) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
+      // Upload file to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
         .from('target-documents')
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Error uploading document:', uploadError);
-        setError(uploadError.message);
-        return null;
+        throw uploadError;
       }
 
-      // Insert document record
+      // Insert document record in database
       const { data: doc, error: insertError } = await supabase
         .from('target_documents')
         .insert({
@@ -59,76 +59,73 @@ export const useTargetDocuments = () => {
         .single();
 
       if (insertError) {
-        console.error('Error inserting document record:', insertError);
-        setError(insertError.message);
-        return null;
+        throw insertError;
       }
 
       return doc as TargetDocument;
+    },
+
+    onError: (err: Error) => {
+      console.error('Error uploading document:', err);
+      setError(err.message);
+    },
+
+    onSuccess: () => {
+      setError(null);
+    },
+  });
+
+  // EXTRACT TARGETS MUTATION
+  const extractMutation = useMutation({
+    mutationFn: (filePath: string) => apiClient.extractTargets(filePath),
+
+    onSuccess: (response) => {
+      if (response && response.targets) {
+        setExtractedTargets(response.targets);
+      }
+      setError(null);
+      // Invalidate targets cache as new targets may have been extracted
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+
+    onError: (err: Error) => {
+      console.error('Error extracting targets:', err);
+      setError(err.message || 'Failed to extract targets');
+    },
+  });
+
+  // Backward-compatible wrappers
+  const uploadDocument = useCallback(async (
+    file: File,
+    documentType?: string
+  ): Promise<TargetDocument | null> => {
+    try {
+      const result = await uploadMutation.mutateAsync({ file, documentType });
+      return result;
     } catch (err) {
       console.error('Error in uploadDocument:', err);
-      setError('Failed to upload document');
       return null;
-    } finally {
-      setUploading(false);
     }
-  };
+  }, [uploadMutation]);
 
-  const parseAndExtractTargets = async (filePath: string): Promise<boolean> => {
+  const parseAndExtractTargets = useCallback(async (filePath: string): Promise<boolean> => {
     try {
-      setExtracting(true);
-      setError(null);
-
-      // Get current session for auth
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) {
-        setError('Not authenticated');
-        return false;
-      }
-
-      // Call REST API with correct parameter
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/extract-targets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ filePath }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error calling extract-targets API:', errorData);
-        setError(errorData.message || 'Failed to extract targets');
-        return false;
-      }
-
-      const data = await response.json();
-
-      if (data && data.targets) {
-        setExtractedTargets(data.targets);
-        return true;
-      }
-
-      return false;
+      await extractMutation.mutateAsync(filePath);
+      return true;
     } catch (err) {
       console.error('Error in parseAndExtractTargets:', err);
-      setError('Failed to extract targets');
       return false;
-    } finally {
-      setExtracting(false);
     }
-  };
+  }, [extractMutation]);
 
-  const clearExtractedTargets = () => {
+  const clearExtractedTargets = useCallback(() => {
     setExtractedTargets([]);
-  };
+  }, []);
 
+  // Return exact same interface
   return {
-    uploading,
-    extracting,
+    uploading: uploadMutation.isPending,
+    extracting: extractMutation.isPending,
     extractedTargets,
     error,
     uploadDocument,
