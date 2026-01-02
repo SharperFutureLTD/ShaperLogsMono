@@ -28,6 +28,8 @@
 
 **IMPORTANT:** Work in small chunks (1-3 days each). Check plan file before starting each chunk!
 
+**GIT WORKFLOW:** After completing each chunk, commit and push changes to GitHub. Do NOT include Claude attribution in commit messages.
+
 ---
 
 ## Project Overview

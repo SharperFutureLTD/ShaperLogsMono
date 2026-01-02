@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import { apiClient } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -11,178 +14,312 @@ type TargetUpdate = Database['public']['Tables']['targets']['Update'];
 
 export const useTargets = () => {
   const { user } = useAuth();
-  const [targets, setTargets] = useState<Target[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // State for undo functionality
   const [recentlyDeleted, setRecentlyDeleted] = useState<Target | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchTargets = useCallback(async () => {
-    if (!user) {
-      setTargets([]);
-      setLoading(false);
-      return;
+  // Helper: Set undo timeout
+  const setUndoTimeout = (target: Target) => {
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
     }
+    setRecentlyDeleted(target);
+    undoTimeoutRef.current = setTimeout(() => {
+      setRecentlyDeleted(null);
+      undoTimeoutRef.current = null;
+    }, 5000);
+  };
 
-    try {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('targets')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching targets:', fetchError);
-        setError(fetchError.message);
-      } else {
-        setTargets(data || []);
-      }
-    } catch (err) {
-      console.error('Error in fetchTargets:', err);
-      setError('Failed to fetch targets');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
+  // Cleanup timeout on unmount
   useEffect(() => {
-    fetchTargets();
-  }, [fetchTargets]);
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const createTarget = async (data: Omit<TargetInsert, 'user_id'>): Promise<boolean> => {
-    if (!user) return false;
+  // Fetch targets via REST API (active only)
+  const {
+    data,
+    isLoading,
+    error: queryError,
+    refetch: reactQueryRefetch
+  } = useQuery({
+    queryKey: queryKeys.targets.active(),
+    queryFn: () => apiClient.getTargets(true), // is_active=true
+    enabled: !!user,
+    select: (response) => response.data,
+  });
 
-    try {
-      const { error: insertError } = await supabase
-        .from('targets')
-        .insert({
-          ...data,
-          user_id: user.id,
+  // Real-time subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('targets_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'targets',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
+  // CREATE MUTATION
+  const createMutation = useMutation({
+    mutationFn: (data: Omit<TargetInsert, 'user_id'>) =>
+      apiClient.createTarget(data),
+
+    onMutate: async (newTarget) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      // Optimistic: add immediately
+      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+        const optimisticTarget: Target = {
+          id: `temp-${Date.now()}`,
+          user_id: user!.id,
+          name: newTarget.name,
+          description: newTarget.description || null,
+          type: newTarget.type || 'goal',
+          target_value: newTarget.target_value || null,
+          current_value: newTarget.current_value || 0,
+          unit: newTarget.unit || null,
+          currency_code: newTarget.currency_code || 'GBP',
+          deadline: newTarget.deadline || null,
+          source_document_id: newTarget.source_document_id || null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return [optimisticTarget, ...(old || [])];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error creating target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // UPDATE MUTATION
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: TargetUpdate }) =>
+      apiClient.updateTarget(id, data),
+
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+        return old?.map(t =>
+          t.id === id ? { ...t, ...data, updated_at: new Date().toISOString() } : t
+        ) || [];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // PROGRESS MUTATION (SIMPLIFIED)
+  const progressMutation = useMutation({
+    mutationFn: ({ id, incrementBy }: { id: string; incrementBy?: number }) =>
+      apiClient.incrementTargetProgress(id, incrementBy),
+
+    onMutate: async ({ id, incrementBy = 1 }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+        return old?.map(t =>
+          t.id === id
+            ? { ...t, current_value: (t.current_value || 0) + incrementBy, updated_at: new Date().toISOString() }
+            : t
+        ) || [];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, variables, context) => {
+      console.error('Error updating progress:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // DELETE MUTATION (WITH UNDO)
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiClient.softDeleteTarget(id),
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      // Find target for undo
+      const targetToDelete = (previousData as Target[] | undefined)?.find(t => t.id === id);
+
+      if (targetToDelete) {
+        setUndoTimeout(targetToDelete); // Start 5-second countdown
+      }
+
+      // Remove from cache
+      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+        return old?.filter(t => t.id !== id) || [];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, id, context) => {
+      console.error('Error deleting target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+      setRecentlyDeleted(null);
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+        undoTimeoutRef.current = null;
+      }
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // RESTORE MUTATION
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => apiClient.restoreTarget(id),
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      // Add back to cache
+      if (recentlyDeleted && recentlyDeleted.id === id) {
+        queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+          return [recentlyDeleted, ...(old || [])];
         });
 
-      if (insertError) {
-        console.error('Error creating target:', insertError);
-        setError(insertError.message);
-        return false;
+        // Clear undo state
+        setRecentlyDeleted(null);
+        if (undoTimeoutRef.current) {
+          clearTimeout(undoTimeoutRef.current);
+          undoTimeoutRef.current = null;
+        }
       }
 
-      await fetchTargets();
+      return { previousData };
+    },
+
+    onError: (err, id, context) => {
+      console.error('Error restoring target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // Backward-compatible wrappers
+  const createTarget = useCallback(async (data: Omit<TargetInsert, 'user_id'>): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      await createMutation.mutateAsync(data);
       return true;
     } catch (err) {
       console.error('Error in createTarget:', err);
-      setError('Failed to create target');
       return false;
     }
-  };
+  }, [user, createMutation]);
 
-  const updateTarget = async (id: string, data: TargetUpdate): Promise<boolean> => {
+  const updateTarget = useCallback(async (id: string, data: TargetUpdate): Promise<boolean> => {
     try {
-      const { error: updateError } = await supabase
-        .from('targets')
-        .update(data)
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating target:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      await fetchTargets();
+      await updateMutation.mutateAsync({ id, data });
       return true;
     } catch (err) {
       console.error('Error in updateTarget:', err);
-      setError('Failed to update target');
       return false;
     }
-  };
+  }, [updateMutation]);
 
-  const updateTargetProgress = async (
+  const updateTargetProgress = useCallback(async (
     id: string,
-    currentValue: number,
+    _currentValue: number, // DEPRECATED - kept for compatibility
     incrementBy: number = 1
   ): Promise<boolean> => {
     try {
-      const { error: updateError } = await supabase
-        .from('targets')
-        .update({ current_value: currentValue + incrementBy })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating target progress:', updateError);
-        setError(updateError.message);
-        return false;
-      }
-
-      await fetchTargets();
+      await progressMutation.mutateAsync({ id, incrementBy });
       return true;
     } catch (err) {
       console.error('Error in updateTargetProgress:', err);
-      setError('Failed to update target progress');
       return false;
     }
-  };
+  }, [progressMutation]);
 
-  const deleteTarget = async (id: string): Promise<boolean> => {
+  const deleteTarget = useCallback(async (id: string): Promise<boolean> => {
     try {
-      // Find the target before soft deleting
-      const target = targets.find((t) => t.id === id);
-      if (target) {
-        setRecentlyDeleted(target);
-        setTimeout(() => setRecentlyDeleted(null), 5000); // Clear after 5 seconds
-      }
-
-      // Soft delete by setting is_active to false
-      const { error: deleteError } = await supabase
-        .from('targets')
-        .update({ is_active: false })
-        .eq('id', id);
-
-      if (deleteError) {
-        console.error('Error deleting target:', deleteError);
-        setError(deleteError.message);
-        return false;
-      }
-
-      await fetchTargets();
+      await deleteMutation.mutateAsync(id);
       return true;
     } catch (err) {
       console.error('Error in deleteTarget:', err);
-      setError('Failed to delete target');
       return false;
     }
-  };
+  }, [deleteMutation]);
 
-  const restoreTarget = async (id: string): Promise<boolean> => {
+  const restoreTarget = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const { error: restoreError } = await supabase
-        .from('targets')
-        .update({ is_active: true })
-        .eq('id', id);
-
-      if (restoreError) {
-        console.error('Error restoring target:', restoreError);
-        setError(restoreError.message);
-        return false;
-      }
-
-      setRecentlyDeleted(null);
-      await fetchTargets();
+      await restoreMutation.mutateAsync(id);
       return true;
     } catch (err) {
       console.error('Error in restoreTarget:', err);
-      setError('Failed to restore target');
       return false;
     }
-  };
+  }, [restoreMutation]);
 
+  const refetch = useCallback(async () => {
+    await reactQueryRefetch();
+  }, [reactQueryRefetch]);
+
+  // Return exact same interface
   return {
-    targets,
-    loading,
-    error,
+    targets: data || [],
+    loading: isLoading,
+    error: queryError?.message || null,
     recentlyDeleted,
-    refetch: fetchTargets,
+    refetch,
     createTarget,
     updateTarget,
     updateTargetProgress,
