@@ -95,7 +95,7 @@ export const useTargets = () => {
       apiClient.createTarget({
         name: data.name!,
         description: data.description ?? undefined,
-        type: data.type ?? undefined,
+        type: (data.type ?? undefined) as 'kpi' | 'ksb' | 'sales_target' | 'goal' | undefined,
         target_value: data.target_value ?? undefined,
         current_value: data.current_value ?? undefined,
         unit: data.unit ?? undefined,
