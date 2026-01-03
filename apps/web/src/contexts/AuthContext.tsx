@@ -48,9 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUserId = session?.user?.id ?? null;
         const previousUserId = previousUserIdRef.current;
 
-        // SECURITY: Clear data on logout, deletion, or user switch
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          clearUserData(previousUserId || undefined);
+        // SECURITY: Clear data on logout or user switch
+        // When user logs out, session becomes null
+        if (!session && previousUserId) {
+          clearUserData(previousUserId);
         } else if (event === 'SIGNED_IN' && previousUserId && newUserId !== previousUserId) {
           // User switched accounts without explicit logout
           console.warn('User switch detected, clearing previous user data');
