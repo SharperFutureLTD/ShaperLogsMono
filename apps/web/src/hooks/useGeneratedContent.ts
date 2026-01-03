@@ -73,7 +73,7 @@ export const useGeneratedContent = () => {
         const optimisticContent: GeneratedContent = {
           id: `temp-${Date.now()}`,
           user_id: user!.id,
-          type: newContent.type,
+          type: newContent.type as GeneratedContent['type'],
           prompt: newContent.prompt,
           content: newContent.content,
           work_entry_ids: newContent.work_entry_ids || null,
