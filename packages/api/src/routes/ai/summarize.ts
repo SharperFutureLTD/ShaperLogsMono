@@ -99,7 +99,15 @@ Guidelines:
 4. Identify key achievements with measurable impact (keep counts, redact amounts)
 5. Note any relevant metrics or KPIs (keep metric names and counts, redact sensitive values)
 6. Categorize the work appropriately for ${industry}
-${targets?.length ? `7. Evaluate if this work contributes to any of the following targets. ONLY link targets if there is a CLEAR and DIRECT contribution. If the work is unrelated to a target, DO NOT link it.
+${targets?.length ? `7. Evaluate if this work contributes to any of the following targets.
+
+CRITICAL TARGET LINKING RULES:
+- ONLY link targets if the user EXPLICITLY mentioned them in the conversation
+- If the user did NOT mention ANY targets by name, return an EMPTY array for targetMappings
+- NEVER infer or assume which targets the work relates to
+- NEVER link targets just because they seem related - user MUST have mentioned them
+- When in doubt, DO NOT link - empty array is always safe
+
 Available targets:
 ${targets.map((t: any) => `   - ID: ${t.id}, Name: ${t.name}, Type: ${t.type}`).join('\n')}` : ''}
 
@@ -137,7 +145,13 @@ Return a JSON object with this structure:
 
 Be specific and quantifiable where possible. Focus on impact and outcomes.
 REMEMBER: Apply REDACTION to all sensitive information in the summary, achievements, and metrics.
-IMPORTANT: Do NOT hallucinate targets. Only use the IDs provided in the list. If no targets are relevant, return an empty array for targetMappings.`;
+
+CRITICAL ANTI-HALLUCINATION RULES:
+1. Do NOT hallucinate targets - only use IDs from the list above
+2. If the user did NOT explicitly mention targets in the conversation, targetMappings MUST be an empty array []
+3. NEVER assign contributionValue unless the user provided specific numbers
+4. If there is ANY doubt about target relevance, DO NOT link it - empty array is correct
+5. The user mentioning work does NOT automatically mean it links to a target`;
 
     const userMessage = `Summarize this work conversation:\n\n${conversationText}`;
 
