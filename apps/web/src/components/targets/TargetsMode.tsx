@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo } from "react";
-import { Upload, Plus } from "lucide-react";
+import { Upload, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTargets } from "@/hooks/useTargets";
 import { TargetList } from "@/components/targets/TargetList";
 import { TargetUpload } from "@/components/targets/TargetUpload";
 import { TargetForm } from "@/components/targets/TargetForm";
+import { ClearAllDialog } from "@/components/targets/ClearAllDialog";
 import { TargetFilters, type TargetTypeFilter, type TargetStatusFilter } from "@/components/targets/TargetFilters";
 import type { Target } from "@/types/targets";
 
@@ -14,6 +15,7 @@ export function TargetsMode() {
   const { targets, loading: isLoading, refetch: fetchTargets, deleteTarget, archiveTarget, updateTarget } = useTargets();
   const [showUpload, setShowUpload] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +25,14 @@ export function TargetsMode() {
   const handleComplete = () => {
     setShowUpload(false);
     setShowForm(false);
+    fetchTargets();
+  };
+
+  const handleClearAll = async () => {
+    // Delete all targets one by one
+    for (const target of targets) {
+      await deleteTarget(target.id);
+    }
     fetchTargets();
   };
 
@@ -108,6 +118,17 @@ export function TargetsMode() {
           <Plus className="h-3 w-3 mr-1" />
           [ADD MANUALLY]
         </Button>
+        {targets.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowClearAllDialog(true)}
+            className="font-mono text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            [CLEAR ALL]
+          </Button>
+        )}
       </div>
 
       {/* Upload Section */}
@@ -189,6 +210,14 @@ export function TargetsMode() {
           </div>
         </div>
       )}
+
+      {/* Clear All Confirmation Dialog */}
+      <ClearAllDialog
+        open={showClearAllDialog}
+        onOpenChange={setShowClearAllDialog}
+        onConfirm={handleClearAll}
+        targetCount={targets.length}
+      />
     </div>
   );
 }
