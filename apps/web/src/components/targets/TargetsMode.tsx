@@ -69,6 +69,17 @@ export function TargetsMode() {
     overdue: filteredTargets.filter(t => getTargetStatus(t) === 'overdue').length,
   }), [filteredTargets]);
 
+  // Adapter for onUpdate to match TargetList's expected signature
+  const handleUpdate = async (targetId: string, updates: Partial<Target>): Promise<Target | null> => {
+    const success = await updateTarget(targetId, updates);
+    if (success) {
+      // Return the updated target from the list
+      const updatedTarget = targets.find(t => t.id === targetId);
+      return updatedTarget ? { ...updatedTarget, ...updates } : null;
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Actions */}
@@ -139,7 +150,7 @@ export function TargetsMode() {
           targets={filteredTargets}
           isLoading={isLoading}
           onDelete={deleteTarget}
-          onUpdate={updateTarget}
+          onUpdate={handleUpdate}
         />
       </div>
 
