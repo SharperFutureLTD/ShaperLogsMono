@@ -114,9 +114,9 @@ export const useTargets = () => {
         const optimisticTarget: Target = {
           id: `temp-${Date.now()}`,
           user_id: user!.id,
-          name: newTarget.name,
+          name: newTarget.name!,
           description: newTarget.description || null,
-          type: newTarget.type || 'goal',
+          type: (newTarget.type || 'goal') as Target['type'],
           target_value: newTarget.target_value || null,
           current_value: newTarget.current_value || 0,
           unit: newTarget.unit || null,
