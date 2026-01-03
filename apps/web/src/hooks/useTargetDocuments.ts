@@ -87,10 +87,10 @@ export const useTargetDocuments = () => {
       if (response && response.targets) {
         console.log('🔄 Transforming', response.targets.length, 'targets');
         // Transform API response (title) to match ExtractedTarget type (name)
-        const transformed: ExtractedTarget[] = response.targets.map((t: APIExtractedTarget) => ({
+        const transformed: ExtractedTarget[] = response.targets.map((t: any) => ({
           name: t.title,
           description: t.description,
-          type: t.type,
+          type: t.type as ExtractedTarget['type'],
           target_value: t.target_value,
         }));
         console.log('✅ Transformed targets:', transformed);
