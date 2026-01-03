@@ -81,6 +81,13 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
           employmentStatus: selectedStatus,
           industry: selectedIndustry,
         });
+      } else {
+        // FALLBACK: Complete with minimal data if conditions above don't match
+        // This ensures onboarding always completes when on history step
+        await onComplete({
+          employmentStatus: selectedStatus || 'employed',
+          industry: selectedIndustry || selectedStudyField || 'general',
+        });
       }
     }
   };
