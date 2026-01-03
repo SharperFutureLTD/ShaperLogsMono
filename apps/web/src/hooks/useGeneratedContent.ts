@@ -7,8 +7,8 @@ import { apiClient } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { Database } from '@/integrations/supabase/types';
+import type { GeneratedContent } from '@/types/generate';
 
-type GeneratedContent = Database['public']['Tables']['generated_content']['Row'];
 type GeneratedContentInsert = Database['public']['Tables']['generated_content']['Insert'];
 
 export const useGeneratedContent = () => {

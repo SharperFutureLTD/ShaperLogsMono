@@ -57,7 +57,7 @@ export interface GeneratedContent {
   type: GenerateType;
   prompt: string;
   content: string;
-  work_entry_ids: string[];
+  work_entry_ids: string[] | null;
   created_at: string;
   updated_at: string;
 }
