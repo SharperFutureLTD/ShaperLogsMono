@@ -7,6 +7,22 @@ import type {
 import { DEFAULT_MODELS, DEFAULT_TEMPERATURE } from '../types';
 
 /**
+ * Type definitions for Gemini OpenAI-compatible API response
+ */
+interface GeminiOpenAIResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+/**
  * GeminiOpenAIProvider - Uses Google's OpenAI-compatible API endpoint
  *
  * This provider uses Google's OpenAI-compatible endpoint instead of the Gemini SDK.
@@ -87,7 +103,7 @@ export class GeminiOpenAIProvider implements IAIProvider {
         throw new Error(`Gemini OpenAI API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as GeminiOpenAIResponse;
       console.log('✅ Received response from Gemini OpenAI API');
       console.log('📊 Response usage:', data.usage);
 

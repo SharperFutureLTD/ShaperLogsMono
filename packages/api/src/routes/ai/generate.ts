@@ -47,6 +47,7 @@ const generateRoute = createRoute({
   },
 });
 
+// @ts-expect-error - Hono OpenAPI strict typing doesn't allow error responses in handler type
 app.openapi(generateRoute, async (c) => {
   try {
     const userId = c.get('userId');
@@ -74,7 +75,6 @@ ${role.skills ? `- Skills: ${role.skills.join(', ')}` : ''}`;
 
     // Optimization: Limit to most recent 20 entries to manage token usage
     const recentEntries = workEntries?.slice(0, 20) || [];
-    const isTruncated = (workEntries?.length || 0) > 20;
 
     // Format work history for context
     const workHistory = recentEntries

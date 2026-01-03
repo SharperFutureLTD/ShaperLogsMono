@@ -104,7 +104,7 @@ app.openapi(voiceToTextRoute, async (c) => {
         throw new Error(`OpenAI API request failed with status ${response.status}: ${errorText}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as { text: string };
       console.log('[VoiceToText] Transcription successful');
       return c.json({ text: result.text }, 200);
 

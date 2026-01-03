@@ -46,10 +46,10 @@ export interface RedactionOptions {
 /**
  * Redact PII from text using regex patterns
  * @param text Text to redact
- * @param options Redaction options
+ * @param _options Redaction options (reserved for future use)
  * @returns Text with PII replaced by placeholders
  */
-export function redactPII(text: string, options: RedactionOptions = {}): string {
+export function redactPII(text: string, _options: RedactionOptions = {}): string {
   let redacted = text;
 
   // Apply regex patterns

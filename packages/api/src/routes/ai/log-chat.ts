@@ -153,7 +153,7 @@ IMPORTANT: Apply REDACTION in real-time as you respond. Don't echo back sensitiv
       const cleanAndParseJSON = (text: string) => {
         // 1. Try to find JSON in markdown code blocks
         const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
+        if (jsonMatch && jsonMatch[1]) {
           return JSON.parse(jsonMatch[1]);
         }
         

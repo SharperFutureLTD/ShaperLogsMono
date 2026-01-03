@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      career_history: {
+        Row: {
+          company: string
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_current: boolean | null
+          skills: string[] | null
+          start_date: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          skills?: string[] | null
+          start_date?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          skills?: string[] | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_content: {
         Row: {
           content: string
@@ -86,7 +128,7 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
-          employment_status: string | null
+          employment_status: "employed" | "job_seeking" | "student" | "apprentice" | null
           id: string
           industry: string | null
           study_field: string | null
@@ -96,7 +138,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name?: string | null
-          employment_status?: string | null
+          employment_status?: "employed" | "job_seeking" | "student" | "apprentice" | null
           id?: string
           industry?: string | null
           study_field?: string | null
@@ -106,7 +148,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string | null
-          employment_status?: string | null
+          employment_status?: "employed" | "job_seeking" | "student" | "apprentice" | null
           id?: string
           industry?: string | null
           study_field?: string | null

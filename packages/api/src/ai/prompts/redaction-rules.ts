@@ -17,6 +17,6 @@ Replace sensitive information with placeholders:
 /**
  * Get REDACTION rules (same for all contexts)
  */
-export function getRedactionRulesForContext(context: 'summary' | 'chat' | 'extract'): string {
+export function getRedactionRulesForContext(_context: 'summary' | 'chat' | 'extract'): string {
   return REDACTION_RULES;
 }
