@@ -113,19 +113,18 @@ export function useLogConversation() {
   // SEND MESSAGE MUTATION (migrated from Edge Function to REST API)
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const userMessage: Message = {
-        role: 'user',
-        content,
-        timestamp: new Date()
-      };
-
-      const newMessages = [...messages, userMessage];
-
-      // Format messages for API
-      const apiMessages = newMessages.map(m => ({
+      // User message already added in onMutate (optimistic update)
+      // Format existing messages + current user message for API
+      const apiMessages = messages.map(m => ({
         role: m.role,
         content: m.content
       }));
+
+      // Add current user message to API call
+      apiMessages.push({
+        role: 'user',
+        content
+      });
 
       // Prepare active targets for AI context
       const activeTargets = targets.map(t => ({
@@ -147,19 +146,30 @@ export function useLogConversation() {
         targets: activeTargets
       });
 
-      return { newMessages, response, userMessage };
+      return { response };
     },
 
-    onMutate: () => {
+    onMutate: (content: string) => {
+      // OPTIMISTIC UPDATE: Add user message IMMEDIATELY
+      const userMessage: Message = {
+        role: 'user',
+        content,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
       setStatus('in_progress');
       setIsLoading(true);
+
+      // Return context for rollback if API call fails
+      return { previousMessages: messages };
     },
 
-    onSuccess: async (data) => {
-      const { newMessages, response, userMessage } = data;
+    onSuccess: async (data, variables, context) => {
+      const { response } = data;
 
-      // Simulate AI "thinking" time for better UX - keep isLoading true during delay
-      // This allows the typing indicator to show while waiting
+      // Simulate AI "thinking" time for better UX
+      // User message already visible, now show typing indicator then AI response
       await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
 
       const assistantMessage: Message = {
@@ -168,7 +178,8 @@ export function useLogConversation() {
         timestamp: new Date()
       };
 
-      setMessages([...newMessages, assistantMessage]);
+      // Add AI message (user message already visible)
+      setMessages(prev => [...prev, assistantMessage]);
       setExchangeCount(prev => prev + 1);
 
       // Merge extracted data
@@ -184,14 +195,24 @@ export function useLogConversation() {
 
       // Check if we should summarize
       if (response.shouldSummarize || exchangeCount >= MAX_EXCHANGES - 1) {
-        summarizeMutation.mutate([...newMessages, assistantMessage]);
+        // Need to get current messages from state
+        setMessages(currentMessages => {
+          summarizeMutation.mutate(currentMessages);
+          return currentMessages;
+        });
       }
 
       setIsLoading(false);
     },
 
-    onError: (err) => {
+    onError: (err, variables, context) => {
       console.error('Error in conversation:', err);
+
+      // Rollback optimistic update
+      if (context?.previousMessages) {
+        setMessages(context.previousMessages);
+      }
+
       toast.error('Failed to process message');
       setIsLoading(false);
     },

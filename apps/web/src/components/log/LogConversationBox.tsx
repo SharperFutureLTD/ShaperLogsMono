@@ -49,7 +49,8 @@ export function LogConversationBox({
   const isInProgress = status === "in_progress";
   const isSummarizing = status === "summarizing";
   const isReviewing = status === "review";
-  const inputDisabled = isLoading || isReviewing || isSummarizing;
+  // Only disable input during summarization or review, NOT during conversation
+  const inputDisabled = isReviewing || isSummarizing;
 
   // Auto-resize textarea
   useEffect(() => {
@@ -115,35 +116,22 @@ export function LogConversationBox({
       {/* Messages area - expands when conversation is active */}
       {isActive && (
         <div className="animate-expand-in">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground">
-                // conversation (up to {maxExchanges} exchanges)
-              </span>
-              {onClear && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-muted-foreground hover:text-destructive"
-                  onClick={onClear}
-                  title="Clear chat"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: maxExchanges }).map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
-                    i < exchangeCount ? "bg-primary" : "bg-muted"
-                  )}
-                />
-              ))}
-            </div>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="font-mono text-xs text-muted-foreground">
+              // conversation
+            </span>
+            {onClear && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                onClick={onClear}
+                title="Clear chat"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
           </div>
 
           {/* Messages */}
