@@ -116,7 +116,11 @@ export const useProfile = () => {
       employmentStatus?: EmploymentStatus;
       industry?: string | null;
       studyField?: string | null;
-    }) => apiClient.updateProfile(data),
+    }) => apiClient.updateProfile({
+      employmentStatus: data.employmentStatus,
+      industry: data.industry ?? undefined,
+      studyField: data.studyField ?? undefined,
+    }),
 
     onMutate: async (data) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.profile.detail() });
