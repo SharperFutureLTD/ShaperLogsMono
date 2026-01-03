@@ -19,7 +19,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
   const [step, setStep] = useState<'select' | 'preview'>('select');
   const [isSaving, setIsSaving] = useState(false);
 
-  const { isUploading, isParsing, extractedTargets, uploadDocument, parseAndExtractTargets, clearExtractedTargets } = useTargetDocuments();
+  const { uploading: isUploading, extracting: isParsing, extractedTargets, uploadDocument, parseAndExtractTargets, clearExtractedTargets } = useTargetDocuments();
   const { createTarget } = useTargets();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
