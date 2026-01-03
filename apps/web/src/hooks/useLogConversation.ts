@@ -219,7 +219,7 @@ export function useLogConversation() {
         extractedData,
         industry: profile?.industry || 'general',
         targets: activeTargets,
-        employmentStatus: profile?.employment_status
+        employmentStatus: profile?.employment_status || undefined
       });
 
       return response;
