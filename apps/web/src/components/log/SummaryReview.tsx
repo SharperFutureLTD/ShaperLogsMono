@@ -56,7 +56,7 @@ export function SummaryReview({
           <Textarea
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="min-h-[100px] font-mono text-sm resize-none"
+            className="min-h-[100px] font-mono resize-none"
           />
           <div className="flex justify-end gap-2">
             <Button

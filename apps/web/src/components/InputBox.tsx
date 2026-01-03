@@ -61,7 +61,7 @@ export function InputBox({ placeholder = "Type here...", onSubmit, disabled }: I
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-14 py-3 font-mono text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-14 py-3 font-mono text-base md:text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
         rows={1}
       />
 

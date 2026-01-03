@@ -248,7 +248,7 @@ export function LogConversationBox({
             placeholder={isRecording ? "recording" : "What did you work on today?"}
             disabled={inputDisabled}
             className={cn(
-              "min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-24 py-3 font-mono text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+              "min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-24 py-3 font-mono text-base md:text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
               isRecording && "placeholder:text-destructive placeholder:animate-pulse"
             )}
             rows={1}
