@@ -1,12 +1,9 @@
-# Railway configuration for Next.js web app
+# Railway configuration for API server
 [build]
 builder = "nixpacks"
-buildCommand = "cd apps/web && npm install && npm run build"
+buildCommand = "npm install && npm run build --workspace=@sharper-logs/api"
 
 [deploy]
-startCommand = "cd apps/web && npm start"
+startCommand = "npm run start --workspace=@sharper-logs/api"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
-
-[[services]]
-name = "web"
