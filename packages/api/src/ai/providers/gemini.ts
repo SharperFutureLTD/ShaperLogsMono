@@ -19,16 +19,37 @@ export class GeminiProvider implements IAIProvider {
 
   async complete(request: AICompletionRequest): Promise<AICompletionResponse> {
     try {
-      const model = this.client.getGenerativeModel({ model: this.model });
+      console.log('🔧 Gemini Provider - maxTokens requested:', request.maxTokens);
+      console.log('🔧 Gemini Provider - temperature:', request.temperature);
+      console.log('🔧 Gemini Provider - responseFormat:', request.responseFormat);
 
       // Build system instruction
       const systemMessages = request.messages.filter((m) => m.role === 'system');
-      const systemInstruction = [
+      const systemInstructionText = [
         request.systemPrompt,
         ...systemMessages.map((m) => m.content),
       ]
         .filter(Boolean)
         .join('\n\n');
+
+      const generationConfig = {
+        temperature: request.temperature || DEFAULT_TEMPERATURE,
+        maxOutputTokens: request.maxTokens || 8192, // Ensure a high default
+        ...(request.responseFormat === 'json' && { responseMimeType: 'application/json' }),
+      };
+
+      console.log('🔧 Gemini generationConfig:', JSON.stringify(generationConfig, null, 2));
+
+      const model = this.client.getGenerativeModel({
+        model: this.model,
+        systemInstruction: systemInstructionText
+          ? {
+              role: 'system',
+              parts: [{ text: systemInstructionText }],
+            }
+          : undefined,
+        generationConfig, // Apply config at model level too
+      });
 
       // Build conversation history
       const conversationMessages = request.messages.filter((m) => m.role !== 'system');
@@ -43,11 +64,7 @@ export class GeminiProvider implements IAIProvider {
 
       const chat = model.startChat({
         history,
-        generationConfig: {
-          temperature: request.temperature || DEFAULT_TEMPERATURE,
-          maxOutputTokens: request.maxTokens,
-        },
-        ...(systemInstruction && systemInstruction.trim() ? { systemInstruction } : {}),
+        generationConfig, // Apply the same config here
       });
 
       const result = await chat.sendMessage(lastMessage?.content || '');

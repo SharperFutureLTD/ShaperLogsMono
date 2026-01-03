@@ -3,10 +3,10 @@
  * Abstraction layer for multi-provider AI support (Claude, OpenAI, Gemini)
  */
 
-export type AIProvider = 'claude' | 'openai' | 'gemini';
+export type AIProvider = "claude" | "openai" | "gemini";
 
 export interface AIMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
@@ -15,6 +15,7 @@ export interface AICompletionRequest {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
+  responseFormat?: "json" | "text"; // Force JSON response format
 }
 
 export interface AICompletionResponse {
@@ -37,9 +38,9 @@ export interface AIProviderConfig {
 }
 
 export const DEFAULT_MODELS: Record<AIProvider, string> = {
-  claude: 'claude-3-5-sonnet-20241022',
-  openai: 'gpt-4o',
-  gemini: 'gemini-1.5-pro',
+  claude: "claude-3-haiku-20240307",
+  openai: "gpt-4o-mini",
+  gemini: "gemini-2.5-flash",
 };
 
 export const DEFAULT_TEMPERATURE = 0.7;

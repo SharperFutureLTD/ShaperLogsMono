@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { apiClient } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -12,35 +12,41 @@ type WorkEntry = Database['public']['Tables']['work_entries']['Row'];
 
 /**
  * useWorkEntries - Fetch and manage work entries via REST API
- *
- * NOTE: Work entry creation is handled by useLogConversation.ts
- * After creating entries, that hook must invalidate the cache:
- *
- * queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all });
- *
- * Real-time updates: Uses Supabase subscription + React Query cache invalidation
- * for immediate updates without polling delays.
- *
- * @see useLogConversation.ts - acceptSummary() function
+ * Supports infinite scrolling/pagination.
  */
 export const useWorkEntries = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch work entries via REST API
+  // Infinite query for pagination
   const {
     data,
     isLoading,
     error: queryError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch: reactQueryRefetch
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: queryKeys.workEntries.lists(),
-    queryFn: () => apiClient.getWorkEntries(),
-    enabled: !!user, // Only fetch if user is authenticated
-    select: (response) => response.entries, // Extract entries array
+    queryFn: ({ pageParam = 1 }) => apiClient.getWorkEntries(pageParam, 20),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.meta && lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
+    },
+    enabled: !!user,
   });
 
-  // Real-time Supabase subscription (preserve existing behavior)
+  // Flatten pages into a single array for backward compatibility
+  const entries = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page?.entries || []) || [];
+  }, [data]);
+
+  // Real-time Supabase subscription
   useEffect(() => {
     if (!user) return;
 
@@ -55,8 +61,7 @@ export const useWorkEntries = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          // On any database change, invalidate React Query cache
-          // This triggers a refetch from the REST API
+          // Invalidate cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all });
         }
       )
@@ -71,36 +76,35 @@ export const useWorkEntries = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.deleteWorkEntry(id),
 
-    // Optimistic update - remove entry immediately from cache
     onMutate: async (id) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.workEntries.lists() });
-
-      // Snapshot the previous value
       const previousData = queryClient.getQueryData(queryKeys.workEntries.lists());
 
-      // Optimistically update cache
-      queryClient.setQueryData(queryKeys.workEntries.lists(), (old: WorkEntry[] | undefined) => {
-        return old?.filter((entry) => entry.id !== id) || [];
+      // Optimistic update for infinite query structure
+      queryClient.setQueryData(queryKeys.workEntries.lists(), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            entries: page.entries.filter((entry: WorkEntry) => entry.id !== id),
+          })),
+        };
       });
 
-      // Return context for rollback
       return { previousData };
     },
 
-    // Rollback on error
     onError: (err, id, context) => {
       console.error('Error deleting work entry:', err);
       queryClient.setQueryData(queryKeys.workEntries.lists(), context?.previousData);
     },
 
-    // Refetch to ensure consistency (real-time subscription will also trigger this)
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workEntries.all });
     },
   });
 
-  // Backward-compatible deleteEntry function
   const deleteEntry = useCallback(async (id: string): Promise<boolean> => {
     try {
       await deleteMutation.mutateAsync(id);
@@ -111,17 +115,19 @@ export const useWorkEntries = () => {
     }
   }, [deleteMutation]);
 
-  // Backward-compatible refetch function
   const refetch = useCallback(async (): Promise<void> => {
     await reactQueryRefetch();
   }, [reactQueryRefetch]);
 
-  // Backward-compatible return interface
   return {
-    entries: data || [],
+    entries,
     loading: isLoading,
     error: queryError?.message || null,
     refetch,
     deleteEntry,
+    // Pagination controls
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   };
 };

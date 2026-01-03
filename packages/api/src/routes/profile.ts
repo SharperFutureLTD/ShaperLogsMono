@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../middleware/auth';
-import { supabase } from '../db/client';
+import { createUserClient } from '../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -56,6 +56,8 @@ const getRoute = createRoute({
 
 app.openapi(getRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
 
   const { data, error } = await supabase
     .from('profiles')
@@ -106,6 +108,8 @@ const updateRoute = createRoute({
 
 app.openapi(updateRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const body = c.req.valid('json');
 
   const updateData: any = {};
@@ -165,6 +169,8 @@ const updateIndustryRoute = createRoute({
 
 app.openapi(updateIndustryRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { industry } = c.req.valid('json');
 
   const { data, error } = await supabase
@@ -219,6 +225,8 @@ const updateEmploymentStatusRoute = createRoute({
 
 app.openapi(updateEmploymentStatusRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { employmentStatus } = c.req.valid('json');
 
   const { data, error } = await supabase
@@ -273,6 +281,8 @@ const updateStudyFieldRoute = createRoute({
 
 app.openapi(updateStudyFieldRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { studyField } = c.req.valid('json');
 
   const { data, error } = await supabase
@@ -329,6 +339,8 @@ const onboardingRoute = createRoute({
 
 app.openapi(onboardingRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const body = c.req.valid('json');
 
   const updateData: any = {

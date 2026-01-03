@@ -14,13 +14,15 @@ import type { Message, ConversationStatus, ExtractedData, SummaryData } from '@/
 import type { Json } from '@/integrations/supabase/types';
 
 const MAX_EXCHANGES = 5;
-const STORAGE_KEYS = {
-  messages: 'log-messages',
-  status: 'log-status',
-  exchangeCount: 'log-exchange-count',
-  extractedData: 'log-extracted-data',
-  summary: 'log-summary'
-};
+
+// SECURITY: Scope storage keys by user ID to prevent data leakage between users
+const getStorageKeys = (userId: string) => ({
+  messages: `log-messages-${userId}`,
+  status: `log-status-${userId}`,
+  exchangeCount: `log-exchange-count-${userId}`,
+  extractedData: `log-extracted-data-${userId}`,
+  summary: `log-summary-${userId}`
+});
 
 export function useLogConversation() {
   const { user } = useAuth();
@@ -43,58 +45,70 @@ export function useLogConversation() {
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // CRITICAL: Hydrate state from sessionStorage after mount (DO NOT MODIFY)
+  // CRITICAL: Hydrate state from sessionStorage after mount (user-scoped)
   useEffect(() => {
+    if (!user?.id) {
+      setIsHydrated(true);
+      return;
+    }
+
+    const keys = getStorageKeys(user.id);
+
     try {
-      const storedMessages = sessionStorage.getItem(STORAGE_KEYS.messages);
+      const storedMessages = sessionStorage.getItem(keys.messages);
       if (storedMessages) {
         const parsed = JSON.parse(storedMessages);
         setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
       }
 
-      const storedStatus = sessionStorage.getItem(STORAGE_KEYS.status);
+      const storedStatus = sessionStorage.getItem(keys.status);
       if (storedStatus) setStatus(JSON.parse(storedStatus));
 
-      const storedCount = sessionStorage.getItem(STORAGE_KEYS.exchangeCount);
+      const storedCount = sessionStorage.getItem(keys.exchangeCount);
       if (storedCount) setExchangeCount(JSON.parse(storedCount));
 
-      const storedData = sessionStorage.getItem(STORAGE_KEYS.extractedData);
+      const storedData = sessionStorage.getItem(keys.extractedData);
       if (storedData) setExtractedData(JSON.parse(storedData));
 
-      const storedSummary = sessionStorage.getItem(STORAGE_KEYS.summary);
+      const storedSummary = sessionStorage.getItem(keys.summary);
       if (storedSummary) setSummary(JSON.parse(storedSummary));
     } catch (err) {
       console.error('Failed to hydrate state from sessionStorage:', err);
     }
 
     setIsHydrated(true);
-  }, []);
+  }, [user?.id]);
 
-  // CRITICAL: Persist state to sessionStorage (DO NOT MODIFY)
+  // CRITICAL: Persist state to sessionStorage (user-scoped)
   useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
-  }, [messages, isHydrated]);
-
-  useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEYS.status, JSON.stringify(status));
-  }, [status, isHydrated]);
+    if (!isHydrated || !user?.id) return;
+    const keys = getStorageKeys(user.id);
+    sessionStorage.setItem(keys.messages, JSON.stringify(messages));
+  }, [messages, isHydrated, user?.id]);
 
   useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEYS.exchangeCount, JSON.stringify(exchangeCount));
-  }, [exchangeCount, isHydrated]);
+    if (!isHydrated || !user?.id) return;
+    const keys = getStorageKeys(user.id);
+    sessionStorage.setItem(keys.status, JSON.stringify(status));
+  }, [status, isHydrated, user?.id]);
 
   useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEYS.extractedData, JSON.stringify(extractedData));
-  }, [extractedData, isHydrated]);
+    if (!isHydrated || !user?.id) return;
+    const keys = getStorageKeys(user.id);
+    sessionStorage.setItem(keys.exchangeCount, JSON.stringify(exchangeCount));
+  }, [exchangeCount, isHydrated, user?.id]);
 
   useEffect(() => {
-    if (!isHydrated) return;
-    sessionStorage.setItem(STORAGE_KEYS.summary, JSON.stringify(summary));
-  }, [summary, isHydrated]);
+    if (!isHydrated || !user?.id) return;
+    const keys = getStorageKeys(user.id);
+    sessionStorage.setItem(keys.extractedData, JSON.stringify(extractedData));
+  }, [extractedData, isHydrated, user?.id]);
+
+  useEffect(() => {
+    if (!isHydrated || !user?.id) return;
+    const keys = getStorageKeys(user.id);
+    sessionStorage.setItem(keys.summary, JSON.stringify(summary));
+  }, [summary, isHydrated, user?.id]);
 
   // SEND MESSAGE MUTATION (migrated from Edge Function to REST API)
   const sendMessageMutation = useMutation({
@@ -244,8 +258,15 @@ export function useLogConversation() {
 
       const encryptedOriginal = await encrypt(originalContent);
 
-      // Extract target IDs from mappings
-      const targetIds = summary.targetMappings?.map(m => m.targetId) || [];
+      // Extract target IDs from mappings and validate UUIDs
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const targetIds = (summary.targetMappings?.map(m => m.targetId) || []).filter(id => {
+        if (!uuidRegex.test(id)) {
+          console.warn(`Invalid target ID: ${id} - skipping`);
+          return false;
+        }
+        return true;
+      });
 
       // Save work entry to database
       const { data: workEntry, error } = await supabase
@@ -358,15 +379,38 @@ export function useLogConversation() {
     setSummary(null);
     setIsLoading(false);
 
-    // Clear persisted state
-    Object.values(STORAGE_KEYS).forEach(key => sessionStorage.removeItem(key));
-  }, []);
+    // Clear user-scoped persisted state
+    if (user?.id) {
+      const keys = getStorageKeys(user.id);
+      Object.values(keys).forEach(key => sessionStorage.removeItem(key));
+    }
+  }, [user?.id]);
 
   const skipToSummary = useCallback(async () => {
     if (messages.length > 0) {
       await generateSummary(messages);
     }
   }, [messages, generateSummary]);
+
+  const undoLastExchange = useCallback(() => {
+    setMessages((prev) => {
+      // Remove last assistant message if present
+      let newMessages = [...prev];
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+        newMessages.pop();
+      }
+      // Remove last user message if present
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'user') {
+        newMessages.pop();
+      }
+      return newMessages;
+    });
+
+    setExchangeCount((prev) => Math.max(0, prev - 1));
+    
+    // Note: We don't rollback extractedData here as it's complex to track history.
+    // The final summary will be based on the remaining conversation messages primarily.
+  }, []);
 
   // Return exact same interface
   return {
@@ -380,6 +424,7 @@ export function useLogConversation() {
     updateSummary,
     acceptSummary,
     resetConversation,
-    skipToSummary
+    skipToSummary,
+    undoLastExchange
   };
 }

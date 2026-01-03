@@ -16,6 +16,16 @@ export const useTargets = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Helper: Safely extract Target array from cache data (handles both raw API response and transformed data)
+  const getTargetArray = (data: unknown): Target[] | undefined => {
+    if (!data) return undefined;
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
+      return (data as any).data;
+    }
+    return undefined;
+  };
+
   // State for undo functionality
   const [recentlyDeleted, setRecentlyDeleted] = useState<Target | null>(null);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -89,7 +99,8 @@ export const useTargets = () => {
       const previousData = queryClient.getQueryData(queryKeys.targets.active());
 
       // Optimistic: add immediately
-      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
+      queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+        const oldArray = getTargetArray(old);
         const optimisticTarget: Target = {
           id: `temp-${Date.now()}`,
           user_id: user!.id,
@@ -106,7 +117,7 @@ export const useTargets = () => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        return [optimisticTarget, ...(Array.isArray(old) ? old : [])];
+        return [optimisticTarget, ...(oldArray || [])];
       });
 
       return { previousData };
@@ -131,8 +142,9 @@ export const useTargets = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
       const previousData = queryClient.getQueryData(queryKeys.targets.active());
 
-      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
-        return old?.map(t =>
+      queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+        const oldArray = getTargetArray(old);
+        return oldArray?.map(t =>
           t.id === id ? { ...t, ...data, updated_at: new Date().toISOString() } : t
         ) || [];
       });
@@ -159,8 +171,9 @@ export const useTargets = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
       const previousData = queryClient.getQueryData(queryKeys.targets.active());
 
-      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
-        return old?.map(t =>
+      queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+        const oldArray = getTargetArray(old);
+        return oldArray?.map(t =>
           t.id === id
             ? { ...t, current_value: (t.current_value || 0) + incrementBy, updated_at: new Date().toISOString() }
             : t
@@ -187,17 +200,19 @@ export const useTargets = () => {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
       const previousData = queryClient.getQueryData(queryKeys.targets.active());
+      const previousArray = getTargetArray(previousData);
 
       // Find target for undo
-      const targetToDelete = (previousData as Target[] | undefined)?.find(t => t.id === id);
+      const targetToDelete = previousArray?.find(t => t.id === id);
 
       if (targetToDelete) {
         setUndoTimeout(targetToDelete); // Start 5-second countdown
       }
 
       // Remove from cache
-      queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
-        return old?.filter(t => t.id !== id) || [];
+      queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+        const oldArray = getTargetArray(old);
+        return oldArray?.filter(t => t.id !== id) || [];
       });
 
       return { previousData };
@@ -228,8 +243,9 @@ export const useTargets = () => {
 
       // Add back to cache
       if (recentlyDeleted && recentlyDeleted.id === id) {
-        queryClient.setQueryData(queryKeys.targets.active(), (old: Target[] | undefined) => {
-          return [recentlyDeleted, ...(old || [])];
+        queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+          const oldArray = getTargetArray(old);
+          return [recentlyDeleted, ...(oldArray || [])];
         });
 
         // Clear undo state

@@ -22,6 +22,12 @@ const PII_PATTERNS = {
   // Credit card numbers (basic pattern)
   creditCard: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g,
 
+  // UK National Insurance Number
+  nino: /\b[A-Z]{2}\s?\d{6}\s?[A-Z]\b/gi,
+
+  // IBAN (International Bank Account Number)
+  iban: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,
+
   // URLs (http/https)
   url: /https?:\/\/[^\s]+/g,
 
@@ -50,6 +56,8 @@ export function redactPII(text: string, options: RedactionOptions = {}): string 
   redacted = redacted.replace(PII_PATTERNS.email, '[EMAIL]');
   redacted = redacted.replace(PII_PATTERNS.phone, '[PHONE]');
   redacted = redacted.replace(PII_PATTERNS.ssn, '[SSN]');
+  redacted = redacted.replace(PII_PATTERNS.nino, '[NINO]');
+  redacted = redacted.replace(PII_PATTERNS.iban, '[IBAN]');
   redacted = redacted.replace(PII_PATTERNS.ipv4, '[IP]');
   redacted = redacted.replace(PII_PATTERNS.creditCard, '[ACCOUNT]');
 
@@ -123,6 +131,16 @@ export function detectUnredactedPII(text: string): string[] {
   PII_PATTERNS.ssn.lastIndex = 0; // Reset after test
   if (PII_PATTERNS.ssn.test(text)) {
     issues.push('SSN detected');
+  }
+
+  PII_PATTERNS.nino.lastIndex = 0;
+  if (PII_PATTERNS.nino.test(text)) {
+    issues.push('NINO detected');
+  }
+
+  PII_PATTERNS.iban.lastIndex = 0;
+  if (PII_PATTERNS.iban.test(text)) {
+    issues.push('IBAN detected');
   }
 
   return issues;

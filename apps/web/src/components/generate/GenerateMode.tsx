@@ -18,9 +18,11 @@ export function GenerateMode() {
     workEntriesCount,
     setSelectedType,
     setPrompt,
+    setContextDocument,
     generate,
     save,
     reset,
+    contextDocument,
   } = useGenerateConversation();
 
   const handleTypeSelect = (type: GenerateType, suggestedPrompt: string) => {
@@ -61,6 +63,8 @@ export function GenerateMode() {
         workEntriesCount={workEntriesCount}
         onPromptChange={setPrompt}
         onGenerate={() => generate()}
+        contextDocument={contextDocument}
+        onContextDocumentChange={setContextDocument}
       />
 
       {/* Generated Content */}

@@ -10,14 +10,15 @@ import type { Database } from '@/integrations/supabase/types';
 
 type TargetDocument = Database['public']['Tables']['target_documents']['Row'];
 
-interface ExtractedTarget {
+interface APIExtractedTarget {
   title: string;
-  description: string;
+  description?: string;
   type: 'kpi' | 'ksb' | 'sales_target' | 'goal';
   target_value?: number;
-  current_value?: number;
-  unit?: string;
 }
+
+// Import shared type
+import type { ExtractedTarget } from '@/types/targets';
 
 export const useTargetDocuments = () => {
   const { user } = useAuth();
@@ -82,8 +83,21 @@ export const useTargetDocuments = () => {
     mutationFn: (filePath: string) => apiClient.extractTargets(filePath),
 
     onSuccess: (response) => {
+      console.log('📥 Received from API:', response);
       if (response && response.targets) {
-        setExtractedTargets(response.targets);
+        console.log('🔄 Transforming', response.targets.length, 'targets');
+        // Transform API response (title) to match ExtractedTarget type (name)
+        const transformed: ExtractedTarget[] = response.targets.map((t: APIExtractedTarget) => ({
+          name: t.title,
+          description: t.description,
+          type: t.type,
+          target_value: t.target_value,
+        }));
+        console.log('✅ Transformed targets:', transformed);
+        setExtractedTargets(transformed);
+        console.log('✅ Set extracted targets state');
+      } else {
+        console.warn('⚠️ No targets in response');
       }
       setError(null);
       // Invalidate targets cache as new targets may have been extracted

@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../middleware/auth';
-import { supabase } from '../db/client';
+import { createUserClient } from '../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -60,6 +60,8 @@ const createLinkRoute = createRoute({
 
 app.openapi(createLinkRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const body = c.req.valid('json');
 
   // Verify work entry belongs to user

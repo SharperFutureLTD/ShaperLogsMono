@@ -7,10 +7,10 @@ import { DefaultOptions, QueryClient } from '@tanstack/react-query';
  */
 const queryConfig: DefaultOptions = {
   queries: {
-    staleTime: 30 * 1000, // 30 seconds - data is fresh for 30s
-    gcTime: 5 * 60 * 1000, // 5 minutes - cache data for 5 minutes (formerly cacheTime)
-    retry: 3, // Retry failed requests 3 times
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 60 * 1000, // 60 seconds - reduce API calls for better efficiency
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep cache longer
+    retry: 2, // Reduce retries to fail faster on persistent errors
+    refetchOnWindowFocus: false, // Disable aggressive window focus refetching
     refetchOnMount: false, // Don't refetch on component mount if data is fresh
     refetchOnReconnect: true, // Refetch when reconnecting to internet
   },

@@ -1,10 +1,12 @@
 'use client'
 
-import { KeyboardEvent } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { KeyboardEvent, useRef, useState } from 'react';
+import { Send, Sparkles, Paperclip, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { GenerateType } from '@/types/generate';
+import { apiClient } from '@/lib/api/client';
+import { toast } from 'sonner';
 
 interface GenerateConversationBoxProps {
   prompt: string;
@@ -13,6 +15,8 @@ interface GenerateConversationBoxProps {
   workEntriesCount: number;
   onPromptChange: (prompt: string) => void;
   onGenerate: () => void;
+  contextDocument?: string | null;
+  onContextDocumentChange?: (content: string | null) => void;
 }
 
 export function GenerateConversationBox({
@@ -22,13 +26,57 @@ export function GenerateConversationBox({
   workEntriesCount,
   onPromptChange,
   onGenerate,
+  contextDocument,
+  onContextDocumentChange,
 }: GenerateConversationBoxProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (prompt.trim() && !isGenerating) {
         onGenerate();
       }
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are supported');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const result = await apiClient.uploadDocument(file, 'generation_context');
+      if (result.parsed_content && onContextDocumentChange) {
+        onContextDocumentChange(result.parsed_content);
+        setFileName(file.name);
+        toast.success('Context document uploaded');
+      } else {
+        throw new Error('Failed to parse document content');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload document');
+    } finally {
+      setIsUploading(false);
+      // Reset input so same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveFile = () => {
+    if (onContextDocumentChange) {
+      onContextDocumentChange(null);
+      setFileName(null);
     }
   };
 
@@ -41,12 +89,51 @@ export function GenerateConversationBox({
           onKeyDown={handleKeyDown}
           placeholder="Describe what you'd like to generate..."
           disabled={isGenerating}
-          className="min-h-[100px] resize-none pr-12 font-mono text-sm"
+          className="min-h-[100px] resize-none pr-12 pb-12 font-mono text-sm"
         />
+        
+        {/* File attachment area */}
+        <div className="absolute bottom-3 left-3 right-12 flex items-center gap-2">
+          {contextDocument ? (
+            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs border border-border">
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              <span className="truncate max-w-[200px] font-medium">{fileName || 'Context Document'}</span>
+              <button 
+                onClick={handleRemoveFile}
+                className="hover:text-destructive transition-colors ml-1"
+                disabled={isGenerating}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".pdf"
+                onChange={handleFileSelect}
+                disabled={isUploading || isGenerating}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isGenerating}
+              >
+                <Paperclip className="h-4 w-4 mr-2" />
+                {isUploading ? 'Uploading...' : 'Attach PDF Context'}
+              </Button>
+            </div>
+          )}
+        </div>
+
         <Button
           size="icon"
           onClick={onGenerate}
-          disabled={!prompt.trim() || isGenerating}
+          disabled={!prompt.trim() || isGenerating || isUploading}
           className="absolute bottom-3 right-3"
         >
           {isGenerating ? (

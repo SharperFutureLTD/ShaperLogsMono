@@ -75,7 +75,26 @@ export const useGeneratedContent = () => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        return [optimisticContent, ...(old || [])];
+
+        // Handle case where cache is empty or undefined
+        if (!old) {
+          return { data: [optimisticContent] };
+        }
+
+        // Handle standard API response structure { data: [...] }
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: [optimisticContent, ...old.data],
+          };
+        }
+
+        // Fallback if cache is just an array (legacy/unexpected state)
+        if (Array.isArray(old)) {
+          return [optimisticContent, ...old];
+        }
+
+        return old;
       });
 
       return { previousData };
@@ -100,8 +119,23 @@ export const useGeneratedContent = () => {
       const previousData = queryClient.getQueryData(queryKeys.generatedContent.lists());
 
       // Optimistic: remove immediately
-      queryClient.setQueryData(queryKeys.generatedContent.lists(), (old: GeneratedContent[] | undefined) => {
-        return old?.filter(item => item.id !== id) || [];
+      queryClient.setQueryData(queryKeys.generatedContent.lists(), (old: any) => {
+        if (!old) return old;
+
+        // Handle standard API response structure { data: [...] }
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: old.data.filter((item: GeneratedContent) => item.id !== id),
+          };
+        }
+
+        // Fallback if cache is just an array
+        if (Array.isArray(old)) {
+          return old.filter((item: GeneratedContent) => item.id !== id);
+        }
+
+        return old;
       });
 
       return { previousData };

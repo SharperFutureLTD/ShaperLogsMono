@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../middleware/auth';
-import { supabase } from '../db/client';
+import { createUserClient } from '../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -51,6 +51,8 @@ const listRoute = createRoute({
 
 app.openapi(listRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
 
   const { data, error } = await supabase
     .from('generated_content')
@@ -101,6 +103,8 @@ const saveRoute = createRoute({
 
 app.openapi(saveRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const body = c.req.valid('json');
 
   const { data, error } = await supabase
@@ -156,6 +160,8 @@ const deleteRoute = createRoute({
 
 app.openapi(deleteRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { id } = c.req.valid('param');
 
   const { error } = await supabase

@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Bell, Lock, Globe } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,51 +20,47 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border">
+        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-4">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => router.push('/')}
-            className="font-mono"
+            aria-label="Go back"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold font-mono">Settings</h1>
+          <h1 className="font-mono text-sm font-medium">settings</h1>
         </div>
+      </header>
 
+      {/* Content */}
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* Account Settings */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold font-mono">Account</h2>
-          </div>
+        <section>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">account</h2>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm text-muted-foreground">Email</Label>
-              <p className="font-mono">{user.email}</p>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">email</Label>
+              <p className="font-mono text-sm">{user.email}</p>
             </div>
             <div>
-              <Label className="text-sm text-muted-foreground">User ID</Label>
-              <p className="font-mono text-xs">{user.id}</p>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">user id</Label>
+              <p className="font-mono text-xs text-muted-foreground">{user.id}</p>
             </div>
           </div>
-        </Card>
+        </section>
 
         {/* Notifications */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold font-mono">Notifications</h2>
-          </div>
-          <div className="space-y-4">
+        <section>
+          <h2 className="font-mono text-xs text-muted-foreground mb-4">notifications</h2>
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div>
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive notifications about your activity</p>
+              <div className="space-y-0.5">
+                <Label className="text-base font-normal">Email Notifications</Label>
+                <p className="text-xs text-muted-foreground">Receive notifications about your activity</p>
               </div>
               <Switch
                 checked={emailNotifications}
@@ -73,9 +68,9 @@ export default function SettingsPage() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <Label>Weekly Digest</Label>
-                <p className="text-sm text-muted-foreground">Get a summary of your week every Monday</p>
+              <div className="space-y-0.5">
+                <Label className="text-base font-normal">Weekly Digest</Label>
+                <p className="text-xs text-muted-foreground">Get a summary of your week every Monday</p>
               </div>
               <Switch
                 checked={weeklyDigest}
@@ -83,42 +78,36 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-        </Card>
+        </section>
 
         {/* Privacy & Security */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Lock className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold font-mono">Privacy & Security</h2>
-          </div>
+        <section>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">privacy & security</h2>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm text-muted-foreground">Data Encryption</Label>
-              <p className="text-sm">All your data is encrypted client-side using AES-256-GCM</p>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">encryption</Label>
+              <p className="text-sm">All your data is encrypted client-side using AES-256-GCM.</p>
             </div>
-            <Button variant="outline" className="font-mono">
+            <Button variant="outline" className="font-mono w-full sm:w-auto h-9">
               Change Password
             </Button>
           </div>
-        </Card>
+        </section>
 
         {/* Preferences */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold font-mono">Preferences</h2>
-          </div>
-          <div className="space-y-4">
+        <section>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">preferences</h2>
+          <div>
             <Button
               variant="outline"
               onClick={() => router.push('/profile')}
-              className="font-mono"
+              className="font-mono w-full sm:w-auto h-9"
             >
               Edit Profile
             </Button>
           </div>
-        </Card>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

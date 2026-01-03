@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../middleware/auth';
-import { supabase } from '../db/client';
+import { createUserClient } from '../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -78,6 +78,8 @@ const listRoute = createRoute({
 
 app.openapi(listRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { is_active } = c.req.valid('query');
 
   let query = supabase
@@ -134,6 +136,8 @@ const createTargetRoute = createRoute({
 
 app.openapi(createTargetRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const body = c.req.valid('json');
 
   const { data, error } = await supabase
@@ -200,6 +204,8 @@ const updateRoute = createRoute({
 
 app.openapi(updateRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { id } = c.req.valid('param');
   const body = c.req.valid('json');
 
@@ -264,6 +270,8 @@ const progressRoute = createRoute({
 
 app.openapi(progressRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { id } = c.req.valid('param');
   const body = await c.req.json().catch(() => ({ incrementBy: 1 }));
   const incrementBy = body.incrementBy || 1;
@@ -343,6 +351,8 @@ const softDeleteRoute = createRoute({
 
 app.openapi(softDeleteRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { id } = c.req.valid('param');
 
   const { error } = await supabase
@@ -393,6 +403,8 @@ const restoreRoute = createRoute({
 
 app.openapi(restoreRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { id } = c.req.valid('param');
 
   const { data, error } = await supabase
@@ -444,6 +456,8 @@ const evidenceRoute = createRoute({
 
 app.openapi(evidenceRoute, async (c) => {
   const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
   const { targetId } = c.req.valid('param');
 
   const { data, error } = await supabase

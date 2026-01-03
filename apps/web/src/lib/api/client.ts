@@ -34,7 +34,12 @@ class APIClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Remove trailing slash if present to avoid double slashes
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+    this.baseURL = url;
   }
 
   /**
@@ -90,8 +95,15 @@ class APIClient {
   // Work Entries
   // ========================================
 
-  async getWorkEntries() {
-    return this.request<{ entries: WorkEntry[] }>('/api/work-entries');
+  async getWorkEntries(page?: number, limit?: number) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (limit) params.append('limit', limit.toString());
+    
+    return this.request<{ 
+      entries: WorkEntry[]; 
+      meta?: { total: number; page: number; limit: number; totalPages: number } 
+    }>(`/api/work-entries?${params.toString()}`);
   }
 
   async createWorkEntry(data: {
@@ -290,11 +302,26 @@ class APIClient {
   // AI Operations
   // ========================================
 
+  async uploadDocument(file: File, documentType: string = 'generation_context') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('documentType', documentType);
+
+    return this.request<{
+      id: string;
+      parsed_content: string | null;
+    }>('/api/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async generateContent(data: {
     prompt: string;
     type: string;
     workEntries?: WorkEntry[];
     industry: string;
+    contextDocument?: string;
   }) {
     return this.request<{ content: string; error?: string }>('/api/ai/generate', {
       method: 'POST',
@@ -370,6 +397,98 @@ class APIClient {
     }>('/api/ai/extract-targets', {
       method: 'POST',
       body: JSON.stringify({ filePath }),
+    });
+  }
+
+  // ========================================
+  // Billing
+  // ========================================
+
+  async createCheckoutSession() {
+    return this.request<{ clientSecret: string }>('/api/billing/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async createPortalSession() {
+    return this.request<{ url: string }>('/api/billing/portal', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async createSubscription() {
+    return this.request<{ clientSecret: string; subscriptionId: string }>('/api/billing/create-subscription', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getSubscriptionStatus() {
+    return this.request<{
+      hasSubscription: boolean;
+      status?: string;
+      currentPeriodEnd?: number;
+      cancelAtPeriodEnd?: boolean;
+      subscriptionId?: string;
+    }>('/api/billing/subscription', {
+      method: 'GET',
+    });
+  }
+
+  async cancelSubscription() {
+    return this.request<{
+      success: boolean;
+      cancelAtPeriodEnd: boolean;
+    }>('/api/billing/cancel-subscription', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getBillingHistory() {
+    return this.request<{
+      invoices: Array<{
+        id: string;
+        amountPaid: number;
+        currency: string;
+        created: number;
+        status: string;
+        invoicePdf?: string;
+      }>;
+    }>('/api/billing/invoices', {
+      method: 'GET',
+    });
+  }
+
+  // ========================================
+  // Career History
+  // ========================================
+
+  async getCareerHistory() {
+    return this.request<{ data: any[] }>('/api/career');
+  }
+
+  async addCareerHistory(data: any) {
+    return this.request<any>('/api/career', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCareerHistory(id: string) {
+    return this.request<{ success: boolean }>(`/api/career/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadResume(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ history: any[] }>('/api/career/upload-resume', {
+      method: 'POST',
+      body: formData,
     });
   }
 }

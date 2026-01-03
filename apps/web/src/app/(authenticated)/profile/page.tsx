@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { IndustrySelector, getIndustryLabel } from '@/components/IndustrySelector';
 import { StatusSelector, getStatusLabel, EmploymentStatus } from '@/components/StatusSelector';
 import { StudyFieldSelector, getStudyFieldLabel } from '@/components/StudyFieldSelector';
+import { CareerHistorySection } from '@/components/career/CareerHistorySection';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { hasSubscription, isActive } = useSubscription();
   const [selectedStatus, setSelectedStatus] = useState<EmploymentStatus | null>(null);
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
   const [selectedStudyField, setSelectedStudyField] = useState<string | null>(null);
@@ -113,9 +117,25 @@ export default function ProfilePage() {
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* User Info */}
-        <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">account</h2>
-          <p className="font-mono text-sm text-foreground">{user?.email}</p>
+        <section className="space-y-3">
+          <h2 className="font-mono text-xs text-muted-foreground">account</h2>
+          <div className="flex items-center gap-2">
+            <p className="font-mono text-sm text-foreground">{user?.email}</p>
+            {hasSubscription && isActive && (
+              <Badge variant="default" className="gap-1 bg-green-500/10 text-green-500 border-green-500/20">
+                <Crown className="h-3 w-3" />
+                Pro
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/billing')}
+            className="font-mono text-xs text-muted-foreground hover:text-foreground -ml-2"
+          >
+            Manage subscription →
+          </Button>
         </section>
 
         {/* Current Status Display */}
@@ -169,6 +189,11 @@ export default function ProfilePage() {
             />
           </section>
         )}
+
+        {/* Career History Section */}
+        <section>
+          <CareerHistorySection />
+        </section>
 
         {/* Save Button */}
         {hasChanges && (

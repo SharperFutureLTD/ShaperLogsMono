@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { StatusSelector, EmploymentStatus } from '@/components/StatusSelector';
 import { StudyFieldSelector } from '@/components/StudyFieldSelector';
 import { IndustrySelector } from '@/components/IndustrySelector';
+import { CareerHistorySection } from '@/components/career/CareerHistorySection';
 import { ArrowLeft } from 'lucide-react';
 
 interface OnboardingProps {
@@ -16,7 +17,7 @@ interface OnboardingProps {
   isSubmitting?: boolean;
 }
 
-type OnboardingStep = 'status' | 'industry' | 'field';
+type OnboardingStep = 'status' | 'industry' | 'field' | 'history';
 
 export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps) => {
   const [step, setStep] = useState<OnboardingStep>('status');
@@ -25,14 +26,16 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
   const [selectedStudyField, setSelectedStudyField] = useState<string | null>(null);
 
   const getTotalSteps = () => {
-    if (selectedStatus === 'apprentice') return 3;
-    return 2;
+    // History is always the last step now
+    if (selectedStatus === 'apprentice') return 4;
+    return 3;
   };
 
   const getCurrentStepNumber = () => {
     if (step === 'status') return 1;
     if (step === 'industry') return 2;
     if (step === 'field') return selectedStatus === 'apprentice' ? 3 : 2;
+    if (step === 'history') return selectedStatus === 'apprentice' ? 4 : 3;
     return 1;
   };
 
@@ -50,13 +53,17 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
       if (selectedStatus === 'apprentice') {
         setStep('field');
       } else {
-        // employed or job_seeking - complete
-        onComplete({
-          employmentStatus: selectedStatus!,
-          industry: selectedIndustry,
-        });
+        // employed or job_seeking -> history
+        setStep('history');
       }
     } else if (step === 'field') {
+      if (selectedStatus === 'student' && selectedStudyField) {
+        setStep('history');
+      } else if (selectedStatus === 'apprentice' && selectedStudyField && selectedIndustry) {
+        setStep('history');
+      }
+    } else if (step === 'history') {
+      // Final completion
       if (selectedStatus === 'student' && selectedStudyField) {
         onComplete({
           employmentStatus: selectedStatus,
@@ -69,12 +76,25 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
           industry: selectedIndustry,
           studyField: selectedStudyField,
         });
+      } else if (selectedStatus && selectedIndustry) {
+        onComplete({
+          employmentStatus: selectedStatus,
+          industry: selectedIndustry,
+        });
       }
     }
   };
 
   const handleBack = () => {
-    if (step === 'field') {
+    if (step === 'history') {
+      if (selectedStatus === 'student') {
+        setStep('field');
+      } else if (selectedStatus === 'apprentice') {
+        setStep('field');
+      } else {
+        setStep('industry');
+      }
+    } else if (step === 'field') {
       if (selectedStatus === 'apprentice') {
         setStep('industry');
       } else {
@@ -86,6 +106,13 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
   };
 
   const handleSkip = () => {
+    // If skipping from history, just complete
+    if (step === 'history') {
+      handleContinue();
+      return;
+    }
+    
+    // Otherwise skip entire flow
     onComplete({
       employmentStatus: selectedStatus || 'employed',
       industry: 'general',
@@ -101,6 +128,9 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
     }
     if (step === 'field') {
       return !!selectedStudyField;
+    }
+    if (step === 'history') {
+      return true; // Optional step
     }
     return false;
   };
@@ -142,6 +172,13 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
       return {
         title: 'what are you studying?',
         subtitle: 'this helps us tailor skills and content to your field',
+      };
+    }
+
+    if (step === 'history') {
+      return {
+        title: 'career history',
+        subtitle: 'add your previous roles to give the AI more context (optional)',
       };
     }
 
@@ -205,6 +242,12 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
               disabled={isSubmitting}
             />
           )}
+
+          {step === 'history' && (
+            <div className="bg-card border rounded-lg p-6">
+              <CareerHistorySection />
+            </div>
+          )}
         </div>
 
         {/* Continue Button */}
@@ -214,20 +257,34 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
             disabled={!canContinue() || isSubmitting}
             className="font-mono px-8"
           >
-            {isSubmitting ? 'saving...' : 'continue'}
+            {isSubmitting ? 'saving...' : step === 'history' ? 'finish setup' : 'continue'}
           </Button>
         </div>
 
         {/* Skip Option */}
-        <div className="text-center mt-4">
-          <button
-            onClick={handleSkip}
-            disabled={isSubmitting}
-            className="text-muted-foreground hover:text-foreground text-xs font-mono transition-colors disabled:opacity-50"
-          >
-            skip for now
-          </button>
-        </div>
+        {step !== 'history' && (
+          <div className="text-center mt-4">
+            <button
+              onClick={handleSkip}
+              disabled={isSubmitting}
+              className="text-muted-foreground hover:text-foreground text-xs font-mono transition-colors disabled:opacity-50"
+            >
+              skip for now
+            </button>
+          </div>
+        )}
+        
+        {step === 'history' && (
+          <div className="text-center mt-4">
+            <button
+              onClick={handleContinue}
+              disabled={isSubmitting}
+              className="text-muted-foreground hover:text-foreground text-xs font-mono transition-colors disabled:opacity-50"
+            >
+              skip this step
+            </button>
+          </div>
+        )}
 
         {/* Step Indicator */}
         <div className="flex justify-center gap-2 mt-6">

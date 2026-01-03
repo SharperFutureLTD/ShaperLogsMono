@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react";
-import { FastForward } from "lucide-react";
+import { FastForward, Trash2, RotateCcw, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,8 @@ interface LogConversationBoxProps {
   status: ConversationStatus;
   onSubmit: (text: string) => void;
   onSkipToSummary: () => void;
+  onClear?: () => void;
+  onUndo?: () => void;
 }
 
 export function LogConversationBox({
@@ -27,7 +29,9 @@ export function LogConversationBox({
   isLoading,
   status,
   onSubmit,
-  onSkipToSummary
+  onSkipToSummary,
+  onClear,
+  onUndo
 }: LogConversationBoxProps) {
   const [value, setValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -113,9 +117,22 @@ export function LogConversationBox({
         <div className="animate-expand-in">
           {/* Progress indicator */}
           <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <span className="font-mono text-xs text-muted-foreground">
-              // conversation
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">
+                // conversation
+              </span>
+              {onClear && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                  onClick={onClear}
+                  title="Clear chat"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-1">
               {Array.from({ length: maxExchanges }).map((_, i) => (
                 <div
@@ -137,29 +154,56 @@ export function LogConversationBox({
             ref={messagesRef}
             className="space-y-3 max-h-[250px] overflow-y-auto px-4 pb-3"
           >
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
+            {messages.map((message, index) => {
+              const isLastUserMessage = message.role === "user" && index === messages.length - 2; // Assuming assistant replied last
+              // Actually, if isLoading is true, the last message is user. If not, last is assistant.
+              // But we want to edit the LAST user message regardless of if AI replied.
+              // If AI replied, "undo" removes AI + User.
+              // So we find the last 'user' message index.
+              const lastUserIndex = messages.findLastIndex(m => m.role === 'user');
+              const canEdit = message.role === "user" && index === lastUserIndex && onUndo && !isLoading;
+
+              return (
                 <div
+                  key={index}
                   className={cn(
-                    "max-w-[85%] rounded-md px-3 py-2 font-mono text-sm",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
+                    "flex group relative",
+                    message.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
-                  <span className="opacity-60 mr-2">
-                    {message.role === "user" ? ">" : "$"}
-                  </span>
-                  {message.content}
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        if (onUndo) {
+                          onUndo();
+                          setValue(message.content);
+                          if (textareaRef.current) textareaRef.current.focus();
+                        }
+                      }}
+                      title="Edit message"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-md px-3 py-2 font-mono text-sm",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    )}
+                  >
+                    <span className="opacity-60 mr-2">
+                      {message.role === "user" ? ">" : "$"}
+                    </span>
+                    {message.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* AI typing indicator */}
             {isLoading && isInProgress && (
@@ -219,6 +263,20 @@ export function LogConversationBox({
 
           {/* Right side controls */}
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {/* Undo button */}
+            {onUndo && messages.length > 0 && !isLoading && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onUndo}
+                className="font-mono text-xs text-muted-foreground hover:text-primary h-8 w-8 p-0"
+                title="Undo last message"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+            )}
+
             {/* Skip to summary button */}
             {showSkipButton && (
               <Button

@@ -3,15 +3,17 @@
 import { useMemo } from 'react';
 import { useGeneratedContent } from '@/hooks/useGeneratedContent';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useAuth } from '@/hooks/useAuth';
 import { filterByDateRange, type DateRangeFilter } from '@/lib/filters';
 import { GenerateHistoryItem } from './GenerateHistoryItem';
 import { GenerateFilters } from './GenerateFilters';
 import { toast } from 'sonner';
 
 export function GenerateHistory() {
+  const { user } = useAuth();
   const { content, isLoading, deleteContent } = useGeneratedContent();
-  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('generate-date-filter', 'all');
-  const [typeFilter, setTypeFilter] = usePersistedState<string[]>('generate-type-filter', []);
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('generate-date-filter', 'all', user?.id);
+  const [typeFilter, setTypeFilter] = usePersistedState<string[]>('generate-type-filter', [], user?.id);
 
   const handleDelete = async (id: string) => {
     try {

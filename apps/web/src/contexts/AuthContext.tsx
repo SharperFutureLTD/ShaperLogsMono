@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, createContext, ReactNode } from "react";
+import { useState, useEffect, useRef, createContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { queryClient } from "@/lib/query/config";
 
 export interface AuthContextType {
   user: User | null;
@@ -15,15 +16,48 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * SECURITY: Clear all user-specific data from cache and storage
+ * Called on logout to prevent data leakage between users
+ */
+function clearUserData(userId?: string) {
+  // Clear React Query cache completely
+  queryClient.clear();
+
+  // Clear sessionStorage (all keys for safety)
+  if (typeof window !== 'undefined') {
+    sessionStorage.clear();
+
+    // Clear encryption keys from localStorage
+    if (userId) {
+      localStorage.removeItem(`encryption_salt_${userId}`);
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const previousUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        const newUserId = session?.user?.id ?? null;
+        const previousUserId = previousUserIdRef.current;
+
+        // SECURITY: Clear data on logout, deletion, or user switch
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          clearUserData(previousUserId || undefined);
+        } else if (event === 'SIGNED_IN' && previousUserId && newUserId !== previousUserId) {
+          // User switched accounts without explicit logout
+          console.warn('User switch detected, clearing previous user data');
+          clearUserData(previousUserId);
+        }
+
+        previousUserIdRef.current = newUserId;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -65,7 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const userId = user?.id;
     await supabase.auth.signOut();
+    // Explicit cleanup on manual logout
+    clearUserData(userId);
   };
 
   return (

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useLogConversation } from "@/hooks/useLogConversation";
 import { useWorkEntries } from "@/hooks/useWorkEntries";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { useAuth } from "@/hooks/useAuth";
 import { filterByDateRange, type DateRangeFilter } from "@/lib/filters";
 import { LogConversationBox } from "./LogConversationBox";
 import { SummaryReview } from "./SummaryReview";
@@ -12,6 +13,8 @@ import { LogFilters } from "./LogFilters";
 import { toast } from "sonner";
 
 export function LogMode() {
+  const { user } = useAuth();
+
   const {
     messages,
     status,
@@ -22,7 +25,9 @@ export function LogMode() {
     sendMessage,
     updateSummary,
     acceptSummary,
-    skipToSummary
+    skipToSummary,
+    resetConversation,
+    undoLastExchange
   } = useLogConversation();
 
   const {
@@ -31,8 +36,8 @@ export function LogMode() {
     deleteEntry
   } = useWorkEntries();
 
-  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('log-date-filter', 'all');
-  const [categoryFilter, setCategoryFilter] = usePersistedState<string[]>('log-category-filter', []);
+  const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('log-date-filter', 'all', user?.id);
+  const [categoryFilter, setCategoryFilter] = usePersistedState<string[]>('log-category-filter', [], user?.id);
 
   const filteredEntries = useMemo(() => {
     let result = filterByDateRange(entries, dateRange);
@@ -71,6 +76,8 @@ export function LogMode() {
         status={status}
         onSubmit={sendMessage}
         onSkipToSummary={skipToSummary}
+        onClear={resetConversation}
+        onUndo={undoLastExchange}
       />
 
       {/* Summary review */}

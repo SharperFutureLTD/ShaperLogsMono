@@ -7,6 +7,7 @@ export type AuthContext = {
   Variables: {
     user: User;
     userId: string;
+    token: string;
   };
 };
 
@@ -47,6 +48,7 @@ export async function authMiddleware(c: Context, next: Next) {
   // Set user in context for route handlers
   c.set('user', user);
   c.set('userId', user.id);
+  c.set('token', token);
 
   await next();
 }
@@ -65,6 +67,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
     if (user) {
       c.set('user', user);
       c.set('userId', user.id);
+      c.set('token', token);
     }
   }
 

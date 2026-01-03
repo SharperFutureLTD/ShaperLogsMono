@@ -2,6 +2,8 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
 
+import { createUserClient } from '../../db/client';
+
 const app = new OpenAPIHono<AuthContext>();
 
 // Zod schemas
@@ -10,6 +12,7 @@ const GenerateRequestSchema = z.object({
   type: z.string().min(1),
   workEntries: z.array(z.any()).optional(),
   industry: z.string().min(1),
+  contextDocument: z.string().optional().describe('Parsed text content from an uploaded file to guide generation structure'),
 });
 
 const GenerateResponseSchema = z.object({
@@ -46,11 +49,36 @@ const generateRoute = createRoute({
 
 app.openapi(generateRoute, async (c) => {
   try {
-    const { prompt, type, workEntries, industry } = c.req.valid('json');
+    const userId = c.get('userId');
+    const token = c.get('token');
+    const { prompt, type, workEntries, industry, contextDocument } = c.req.valid('json');
+
+    // Fetch career history
+    const supabase = createUserClient(token);
+    const { data: careerHistory } = await supabase
+      .from('career_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
+
+    // Format career history for context
+    const historyContext = careerHistory
+      ?.map((role) => {
+        const start = role.start_date ? new Date(role.start_date).toLocaleDateString() : 'N/A';
+        const end = role.is_current ? 'Present' : (role.end_date ? new Date(role.end_date).toLocaleDateString() : 'N/A');
+        return `Role: ${role.title} at ${role.company} (${start} - ${end})
+${role.description ? `- Description: ${role.description}` : ''}
+${role.skills ? `- Skills: ${role.skills.join(', ')}` : ''}`;
+      })
+      .join('\n\n') || '';
+
+    // Optimization: Limit to most recent 20 entries to manage token usage
+    const recentEntries = workEntries?.slice(0, 20) || [];
+    const isTruncated = (workEntries?.length || 0) > 20;
 
     // Format work history for context
-    const workHistory = workEntries
-      ?.map((entry: any, index: number) => {
+    const workHistory = recentEntries
+      .map((entry: any, index: number) => {
         const date = new Date(entry.created_at).toLocaleDateString();
         return `Entry ${index + 1} (${date}):
 - Summary: ${entry.redacted_summary}
@@ -58,7 +86,7 @@ ${entry.skills?.length ? `- Skills: ${entry.skills.join(', ')}` : ''}
 ${entry.achievements?.length ? `- Achievements: ${entry.achievements.join('; ')}` : ''}
 ${entry.category ? `- Category: ${entry.category}` : ''}`;
       })
-      .join('\n\n') || 'No work history provided.';
+      .join('\n\n') || 'No recent work history provided.';
 
     // Build industry-specific system prompt
     const systemPrompt = `You are a professional ${industry} content writer and career advisor.
@@ -73,11 +101,17 @@ Guidelines:
 - Quantify achievements with metrics when available
 - Focus on impact and outcomes, not just tasks
 - Match the tone and style expected for ${type} documents
-- Be concise but comprehensive`;
+- Be concise but comprehensive
+${contextDocument ? `- IMPORTANT: Strictly follow the structure and format provided in the "Context Document" section below.` : ''}`;
 
-    const userMessage = `Using the following work history, ${prompt}
+    const userMessage = `Using the following work history and career background, ${prompt}
 
-Work History:
+${contextDocument ? `\n\nCONTEXT DOCUMENT (Use this structure):\n${contextDocument}\n` : ''}
+
+CAREER HISTORY (Past Roles):
+${historyContext}
+
+RECENT WORK LOGS (Current Role):
 ${workHistory}
 
 Please generate the ${type} content.`;
@@ -90,7 +124,7 @@ Please generate the ${type} content.`;
       ],
       systemPrompt,
       temperature: 0.7,
-      maxTokens: 4096,
+      maxTokens: 8192,
     });
 
     return c.json({

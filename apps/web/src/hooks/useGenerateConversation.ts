@@ -14,6 +14,7 @@ interface GenerateState {
   generatedContent: string | null;
   selectedType: GenerateType;
   prompt: string;
+  contextDocument: string | null;
 }
 
 export function useGenerateConversation() {
@@ -26,6 +27,7 @@ export function useGenerateConversation() {
     generatedContent: null,
     selectedType: 'custom',
     prompt: '',
+    contextDocument: null,
   });
 
   // GENERATE CONTENT MUTATION (migrated from Edge Function to REST API)
@@ -49,6 +51,7 @@ export function useGenerateConversation() {
         type: state.selectedType,
         workEntries: entriesForContext,
         industry: profile?.industry || 'general',
+        contextDocument: state.contextDocument || undefined,
       });
 
       if (response.error) {
@@ -80,6 +83,10 @@ export function useGenerateConversation() {
 
   const setPrompt = useCallback((prompt: string) => {
     setState(prev => ({ ...prev, prompt }));
+  }, []);
+
+  const setContextDocument = useCallback((content: string | null) => {
+    setState(prev => ({ ...prev, contextDocument: content }));
   }, []);
 
   const generate = useCallback(async (customPrompt?: string): Promise<string | null> => {
@@ -121,6 +128,7 @@ export function useGenerateConversation() {
         generatedContent: null,
         selectedType: 'custom',
         prompt: '',
+        contextDocument: null,
       });
 
       return saved;
@@ -137,6 +145,7 @@ export function useGenerateConversation() {
       generatedContent: null,
       selectedType: 'custom',
       prompt: '',
+      contextDocument: null,
     });
   }, []);
 
@@ -146,6 +155,7 @@ export function useGenerateConversation() {
     workEntriesCount: workEntries.length,
     setSelectedType,
     setPrompt,
+    setContextDocument,
     generate,
     save,
     reset,

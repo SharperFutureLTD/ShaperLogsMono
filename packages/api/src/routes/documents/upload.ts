@@ -1,9 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { authMiddleware } from '../../middleware/auth';
-import { getUserSupabase } from '../../db/client';
+import { authMiddleware, type AuthContext } from '../../middleware/auth';
+import { createUserClient } from '../../db/client';
 import { extractTextFromPDF } from '../../utils/pdf-parser';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<AuthContext>();
 
 const UploadResponseSchema = z.object({
   id: z.string().uuid(),
@@ -120,7 +120,8 @@ app.openapi(uploadRoute, async (c) => {
     }
 
     // Get user-scoped Supabase client
-    const supabase = getUserSupabase(user.id);
+    const token = c.get('token');
+    const supabase = createUserClient(token);
 
     // Upload file to Supabase Storage
     const fileExt = file.name.split('.').pop() || 'pdf';

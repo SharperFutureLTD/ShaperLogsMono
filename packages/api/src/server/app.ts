@@ -1,8 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import { logger } from 'hono/logger';
 import { swaggerUI } from '@hono/swagger-ui';
 import type { AuthContext } from '../middleware/auth';
+import { rateLimiter } from '../middleware/rate-limit';
 import workEntriesRoutes from '../routes/work-entries';
 import targetsRoutes from '../routes/targets';
 import profileRoutes from '../routes/profile';
@@ -12,21 +14,44 @@ import aiGenerateRoutes from '../routes/ai/generate';
 import aiLogChatRoutes from '../routes/ai/log-chat';
 import aiSummarizeRoutes from '../routes/ai/summarize';
 import aiExtractTargetsRoutes from '../routes/ai/extract-targets';
+import aiVoiceToTextRoutes from '../routes/ai/voice-to-text';
 import documentsUploadRoutes from '../routes/documents/upload';
+import billingRoutes from '../routes/billing';
+import careerRoutes from '../routes/career';
 
 // Create OpenAPI app
 export const app = new OpenAPIHono<AuthContext>();
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-  'http://localhost:3000',
-  'http://localhost:5173',
-];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:5173'];
 
 app.use('/*', cors({
-  origin: allowedOrigins,
+  origin: (origin) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return allowedOrigins[0];
+    
+    // Check if origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      return origin;
+    }
+    
+    // Allow Vercel preview deployments (optional, strictly for dev/staging)
+    if (process.env.NODE_ENV !== 'production' && origin.endsWith('.vercel.app')) {
+      return origin;
+    }
+
+    return allowedOrigins[0]; // Fallback to first allowed origin (or deny if configured strictly)
+  },
   credentials: true,
 }));
+
+// Secure headers
+app.use('/*', secureHeaders());
+
+// Rate limiter
+app.use('/*', rateLimiter);
 
 // Logger middleware
 app.use('/*', logger());
@@ -73,9 +98,16 @@ app.route('/', aiGenerateRoutes);
 app.route('/', aiLogChatRoutes);
 app.route('/', aiSummarizeRoutes);
 app.route('/', aiExtractTargetsRoutes);
+app.route('/', aiVoiceToTextRoutes);
 
 // Register document routes
 app.route('/', documentsUploadRoutes);
+
+// Register billing routes
+app.route('/', billingRoutes);
+
+// Register career routes
+app.route('/', careerRoutes);
 
 // API Documentation with Swagger UI
 app.get('/api/docs', swaggerUI({
@@ -92,7 +124,7 @@ app.doc('/api/openapi.json', {
   },
   servers: [
     {
-      url: 'http://localhost:3001',
+      url: 'http://localhost:8080',
       description: 'Development server',
     },
     {

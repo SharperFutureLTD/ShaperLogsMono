@@ -32,20 +32,32 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    console.log('📤 Starting upload for:', selectedFile.name);
     const doc = await uploadDocument(selectedFile, documentType);
+    console.log('📄 Document uploaded:', doc);
+
     if (doc) {
-      await parseAndExtractTargets(doc.id, documentType);
+      console.log('🔍 Extracting targets from:', doc.file_path);
+      await parseAndExtractTargets(doc.file_path);
+      console.log('📊 Extraction complete, extractedTargets count:', extractedTargets.length);
+      console.log('🎯 Setting step to preview');
       setStep('preview');
+    } else {
+      console.error('❌ Document upload failed');
     }
   };
 
   const handleSaveTargets = async (targets: ExtractedTarget[]) => {
+    console.log('💾 Saving', targets.length, 'targets');
     setIsSaving(true);
 
     for (const target of targets) {
-      await createTarget(target);
+      console.log('💾 Creating target:', target);
+      const success = await createTarget(target);
+      console.log('✅ Target created:', success);
     }
 
+    console.log('🧹 Clearing extracted targets');
     clearExtractedTargets();
     setSelectedFile(null);
     setStep('select');
@@ -59,7 +71,10 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
     setStep('select');
   };
 
+  console.log('🔍 TargetUpload render - step:', step, 'extractedTargets:', extractedTargets.length);
+
   if (step === 'preview' && extractedTargets.length > 0) {
+    console.log('✅ Showing preview screen with', extractedTargets.length, 'targets');
     return (
       <div className="border border-border rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">

@@ -1,4 +1,9 @@
-// pdf-parse is a CommonJS module, use require
+// pdf-parse is a CommonJS module, import using createRequire
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// pdf-parse exports the function as CommonJS default export
+// The module itself IS the function
 const pdfParse = require('pdf-parse');
 
 export interface PDFParseResult {
