@@ -146,7 +146,16 @@ export const useTargets = () => {
   // UPDATE MUTATION
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: TargetUpdate }) =>
-      apiClient.updateTarget(id, data),
+      apiClient.updateTarget(id, {
+        name: data.name ?? undefined,
+        description: data.description ?? undefined,
+        type: (data.type ?? undefined) as 'kpi' | 'ksb' | 'sales_target' | 'goal' | undefined,
+        target_value: data.target_value ?? undefined,
+        current_value: data.current_value ?? undefined,
+        unit: data.unit ?? undefined,
+        deadline: data.deadline ?? undefined,
+        is_active: data.is_active ?? undefined,
+      }),
 
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
