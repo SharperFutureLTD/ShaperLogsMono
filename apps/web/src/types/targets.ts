@@ -10,7 +10,8 @@ export interface Target {
   currency_code: string;
   deadline: string | null;
   source_document_id: string | null;
-  is_active: boolean;
+  status: 'active' | 'archived' | 'deleted'; // NEW: Lifecycle status
+  is_active: boolean; // DEPRECATED: Kept for backward compatibility
   created_at: string;
   updated_at: string;
 }

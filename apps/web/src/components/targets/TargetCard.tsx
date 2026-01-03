@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useIsTouchDevice } from "@/hooks/use-touch-device";
 import type { Target as TargetType } from "@/types/targets";
 
 interface TargetCardProps {
@@ -26,6 +27,7 @@ interface TargetCardProps {
 
 export function TargetCard({ target, evidenceCount = 0, onDelete, onClick }: TargetCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const isTouchDevice = useIsTouchDevice();
   const hasNumericTarget = target.target_value !== null && target.target_value > 0;
   const progress = hasNumericTarget
     ? Math.min((target.current_value / target.target_value!) * 100, 100)
@@ -108,17 +110,20 @@ export function TargetCard({ target, evidenceCount = 0, onDelete, onClick }: Tar
           <span className={`px-2 py-0.5 rounded text-xs font-mono ${getTypeColor(target.type)}`}>
             {getTypeLabel(target.type)}
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 md:h-6 md:w-6 text-muted-foreground hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDeleteDialog(true);
-            }}
-          >
-            <Trash2 className="h-4 w-4 md:h-3 md:w-3" />
-          </Button>
+          {/* Only show delete button on non-touch devices (touch devices use swipe gesture) */}
+          {!isTouchDevice && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:h-6 md:w-6 text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteDialog(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4 md:h-3 md:w-3" />
+            </Button>
+          )}
         </div>
       </div>
 

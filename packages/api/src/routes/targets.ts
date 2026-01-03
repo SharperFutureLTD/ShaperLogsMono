@@ -18,7 +18,8 @@ const TargetSchema = z.object({
   currency_code: z.string().nullable(),
   deadline: z.string().datetime().nullable(),
   source_document_id: z.string().nullable(),
-  is_active: z.boolean().nullable(),
+  status: z.enum(['active', 'archived', 'deleted']).nullable(), // NEW: Lifecycle status
+  is_active: z.boolean().nullable(), // DEPRECATED: Kept for backward compatibility
   created_at: z.string().datetime().nullable(),
   updated_at: z.string().datetime().nullable(),
 });
@@ -43,7 +44,8 @@ const UpdateTargetSchema = z.object({
   current_value: z.number().optional(),
   unit: z.string().optional(),
   deadline: z.string().datetime().optional(),
-  is_active: z.boolean().optional(),
+  status: z.enum(['active', 'archived', 'deleted']).optional(), // NEW: Lifecycle status
+  is_active: z.boolean().optional(), // DEPRECATED: Kept for backward compatibility
 });
 
 // GET /api/targets - List all targets
@@ -54,7 +56,8 @@ const listRoute = createRoute({
   middleware: [authMiddleware] as any,
   request: {
     query: z.object({
-      is_active: z.string().optional(),
+      is_active: z.string().optional(), // DEPRECATED: Use status instead
+      status: z.string().optional(), // NEW: Filter by status (active, archived, deleted)
     }),
   },
   responses: {
@@ -75,15 +78,20 @@ app.openapi(listRoute, async (c) => {
   const userId = c.get('userId');
   const token = c.get('token');
   const supabase = createUserClient(token);
-  const { is_active } = c.req.valid('query');
+  const { is_active, status } = c.req.valid('query');
 
   let query = supabase
     .from('targets')
     .select('*')
     .eq('user_id', userId);
 
-  if (is_active !== undefined) {
-    query = query.eq('is_active', is_active === 'true');
+  // NEW: Status filter takes precedence over is_active
+  if (status !== undefined) {
+    query = query.eq('status', status);
+  } else if (is_active !== undefined) {
+    // DEPRECATED: Legacy support for is_active parameter
+    const statusFilter = is_active === 'true' ? 'active' : 'deleted';
+    query = query.eq('status', statusFilter);
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -352,7 +360,7 @@ app.openapi(softDeleteRoute, async (c) => {
 
   const { error } = await supabase
     .from('targets')
-    .update({ is_active: false })
+    .update({ status: 'deleted' }) // Updated to use status field
     .eq('id', id)
     .eq('user_id', userId);
 
@@ -369,7 +377,7 @@ app.openapi(softDeleteRoute, async (c) => {
 
   return c.json({
     success: true,
-    message: 'Target archived successfully',
+    message: 'Target deleted successfully',
   });
 });
 
@@ -404,7 +412,113 @@ app.openapi(restoreRoute, async (c) => {
 
   const { data, error } = await supabase
     .from('targets')
-    .update({ is_active: true })
+    .update({ status: 'active' }) // Updated to use status field
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    return c.json(
+      {
+        error: 'Database Error',
+        message: error.message,
+        status: 500,
+      },
+      500
+    );
+  }
+
+  return c.json(data);
+});
+
+// PATCH /api/targets/:id/archive - Archive a target
+const archiveRoute = createRoute({
+  method: 'patch',
+  path: '/api/targets/{id}/archive',
+  tags: ['Targets'],
+  middleware: [authMiddleware] as any,
+  request: {
+    params: z.object({
+      id: z.string().uuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Target archived',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string(),
+          }),
+        },
+      },
+    },
+  },
+});
+
+app.openapi(archiveRoute, async (c) => {
+  const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
+  const { id } = c.req.valid('param');
+
+  const { error } = await supabase
+    .from('targets')
+    .update({ status: 'archived' })
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    return c.json(
+      {
+        error: 'Database Error',
+        message: error.message,
+        status: 500,
+      },
+      500
+    );
+  }
+
+  return c.json({
+    success: true,
+    message: 'Target archived successfully',
+  });
+});
+
+// PATCH /api/targets/:id/unarchive - Unarchive a target
+const unarchiveRoute = createRoute({
+  method: 'patch',
+  path: '/api/targets/{id}/unarchive',
+  tags: ['Targets'],
+  middleware: [authMiddleware] as any,
+  request: {
+    params: z.object({
+      id: z.string().uuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Target unarchived',
+      content: {
+        'application/json': {
+          schema: TargetSchema,
+        },
+      },
+    },
+  },
+});
+
+app.openapi(unarchiveRoute, async (c) => {
+  const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
+  const { id } = c.req.valid('param');
+
+  const { data, error } = await supabase
+    .from('targets')
+    .update({ status: 'active' })
     .eq('id', id)
     .eq('user_id', userId)
     .select()

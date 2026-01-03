@@ -6,7 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTargetDocuments } from "@/hooks/useTargetDocuments";
 import { useTargets } from "@/hooks/useTargets";
+import { toast } from "sonner";
 import type { ExtractedTarget } from "@/types/targets";
+
+// File type validation configuration
+const FILE_TYPES = {
+  'application/pdf': { max: 10, label: 'PDF' },
+  'text/plain': { max: 2, label: 'Text' },
+  'text/markdown': { max: 2, label: 'Markdown' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { max: 5, label: 'Word' },
+  'application/msword': { max: 5, label: 'Word' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { max: 10, label: 'Excel' },
+  'text/csv': { max: 10, label: 'CSV' },
+  'application/vnd.ms-excel': { max: 10, label: 'Excel' },
+} as const;
 
 interface TargetUploadProps {
   onComplete: () => void;
@@ -24,9 +37,25 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+    if (!file) return;
+
+    // Validate file type
+    const fileType = FILE_TYPES[file.type as keyof typeof FILE_TYPES];
+    if (!fileType) {
+      toast.error(`Unsupported file type: ${file.type}. Please use PDF, Word, Excel, CSV, or Text files.`);
+      e.target.value = ''; // Reset input
+      return;
     }
+
+    // Validate file size
+    const maxSizeBytes = fileType.max * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.error(`${fileType.label} files must be under ${fileType.max}MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`);
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    setSelectedFile(file);
   };
 
   const handleUpload = async () => {
@@ -135,7 +164,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.txt,.md,.doc,.docx"
+        accept=".pdf,.txt,.md,.doc,.docx,.xlsx,.xls,.csv"
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -147,7 +176,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
             Upload your targets document
           </p>
           <p className="font-mono text-xs text-muted-foreground mb-4">
-            PDF, TXT, or Word documents supported
+            PDF, Word, Excel, CSV, or Text files supported
           </p>
           <Button
             variant="outline"

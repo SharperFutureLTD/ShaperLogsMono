@@ -194,6 +194,17 @@ class APIClient {
     return this.request<Target>(`/api/targets/${id}/restore`, { method: 'PATCH' });
   }
 
+  async archiveTarget(id: string) {
+    return this.request<{ success: boolean; message: string }>(
+      `/api/targets/${id}/archive`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async unarchiveTarget(id: string) {
+    return this.request<Target>(`/api/targets/${id}/unarchive`, { method: 'PATCH' });
+  }
+
   async getTargetEvidence(targetId: string) {
     return this.request<{ data: any[] }>(`/api/targets/${targetId}/evidence`);
   }

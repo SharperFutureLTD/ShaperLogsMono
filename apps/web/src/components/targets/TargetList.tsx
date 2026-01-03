@@ -2,21 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { TargetCard } from "./TargetCard";
+import { SwipeableTargetCard } from "./SwipeableTargetCard";
 import { TargetDetailSheet } from "./TargetDetailSheet";
 import { Loader2, Target } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useIsTouchDevice } from "@/hooks/use-touch-device";
 import type { Target as TargetType } from "@/types/targets";
 
 interface TargetListProps {
   targets: TargetType[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
   onUpdate?: (targetId: string, updates: Partial<TargetType>) => Promise<TargetType | null>;
 }
 
-export function TargetList({ targets, isLoading, onDelete, onUpdate }: TargetListProps) {
+export function TargetList({ targets, isLoading, onDelete, onArchive, onUpdate }: TargetListProps) {
   const [selectedTarget, setSelectedTarget] = useState<TargetType | null>(null);
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({});
+  const isTouchDevice = useIsTouchDevice();
 
   // Fetch evidence counts for all targets
   useEffect(() => {
@@ -71,18 +75,44 @@ export function TargetList({ targets, isLoading, onDelete, onUpdate }: TargetLis
     );
   }
 
+  const handleArchive = (id: string) => {
+    onArchive?.(id);
+  };
+
+  const handleEdit = (id: string) => {
+    const target = targets.find(t => t.id === id);
+    if (target) {
+      setSelectedTarget(target);
+    }
+  };
+
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
-        {targets.map((target) => (
-          <TargetCard
-            key={target.id}
-            target={target}
-            evidenceCount={evidenceCounts[target.id] || 0}
-            onDelete={onDelete}
-            onClick={() => setSelectedTarget(target)}
-          />
-        ))}
+        {targets.map((target) => {
+          // Use SwipeableTargetCard on touch devices, regular TargetCard otherwise
+          const CardComponent = isTouchDevice ? SwipeableTargetCard : TargetCard;
+
+          return isTouchDevice ? (
+            <SwipeableTargetCard
+              key={target.id}
+              target={target}
+              evidenceCount={evidenceCounts[target.id] || 0}
+              onDelete={onDelete}
+              onArchive={handleArchive}
+              onEdit={handleEdit}
+              onClick={() => setSelectedTarget(target)}
+            />
+          ) : (
+            <TargetCard
+              key={target.id}
+              target={target}
+              evidenceCount={evidenceCounts[target.id] || 0}
+              onDelete={onDelete}
+              onClick={() => setSelectedTarget(target)}
+            />
+          );
+        })}
       </div>
 
       <TargetDetailSheet

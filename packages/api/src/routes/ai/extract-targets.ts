@@ -16,6 +16,7 @@ const ExtractedTargetSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['kpi', 'ksb', 'sales_target', 'goal']).optional(),
   target_value: z.number().optional(),
+  source_quote: z.string().optional(), // Verbatim quote from document for validation
 });
 
 const ExtractTargetsResponseSchema = z.object({
@@ -126,34 +127,65 @@ app.openapi(extractTargetsRoute, async (c) => {
       );
     }
 
-    // Build system prompt for target extraction (matching legacy version)
-    const systemPrompt = `You are an expert at extracting structured targets from documents.
+    // Build system prompt for target extraction (strict anti-hallucination version)
+    const systemPrompt = `You are an expert at extracting ONLY explicitly stated targets from documents.
 
-Extract all targets/goals/KPIs/KSBs from the provided document text. For each target, identify:
-- title: A concise name for the target
-- description: Brief description of what needs to be achieved
-- type: One of 'kpi', 'ksb', 'sales_target', 'goal'
-- target_value: Numeric value if applicable (e.g., 10000 for £10,000 revenue)
+STRICT EXTRACTION RULES - READ CAREFULLY:
+1. ONLY extract targets EXPLICITLY stated in the document with clear language
+2. DO NOT infer, deduce, imagine, or create targets from context
+3. DO NOT extract general job responsibilities or duties
+4. DO NOT extract past achievements unless explicitly stated as ongoing targets
+5. DO NOT extract aspirational statements without specific measurable criteria
+6. If uncertain whether something is a target, EXCLUDE IT
+
+VALID TARGET INDICATORS (must contain one or more):
+- Keywords: "Target:", "Goal:", "KPI:", "Objective:", "Achieve:", "Deliver:"
+- Specific numeric values with deadlines (e.g., "£50,000 by Q2 2026")
+- SMART formatted goals (Specific, Measurable, Achievable, Relevant, Time-bound)
+- Clear assignment to individual (e.g., "Your target is...", "You must achieve...")
+
+INVALID - DO NOT EXTRACT THESE:
+❌ "Responsible for customer satisfaction" → Too vague, no measurable target
+❌ "We aim to grow the business" → Not specific, not assigned to individual
+❌ "Achieved 95% uptime last quarter" → Past achievement, not future target
+❌ "Develop leadership skills" → No measurable criteria or deadline
+❌ "Support the team" → General duty, not a target
+❌ "Maintain high standards" → Vague, no specific metric
+
+VALID - EXTRACT THESE:
+✅ "Achieve 95% customer satisfaction score by Q2 2026" → Specific, measurable, time-bound
+✅ "Increase monthly revenue to £50,000 by June 2026" → Clear numeric target with deadline
+✅ "Complete 5 professional development courses in 2026" → Measurable, time-bound goal
+✅ "Target: Reduce customer churn to below 5% by end of year" → Explicit target keyword + metric
+
+VERIFICATION CHECKLIST - Before including a target, verify ALL 4:
+□ Is it explicitly stated as a target/goal/KPI (not just a responsibility)?
+□ Does it have a measurable component (number, percentage, deadline)?
+□ Can you quote the EXACT text from the document that proves it's a target?
+□ Is it assigned to the individual (not a company-wide or team goal)?
+
+If you cannot answer YES to all 4 questions, DO NOT INCLUDE IT.
 
 RESPONSE FORMAT (JSON):
 {
   "targets": [
     {
-      "title": "Q1 Revenue Target",
-      "description": "Achieve quarterly revenue goal",
-      "type": "sales_target",
-      "target_value": 10000
-    },
-    {
-      "title": "Customer Satisfaction Score",
-      "description": "Maintain high customer satisfaction rating",
-      "type": "kpi",
-      "target_value": 95
+      "title": "Exact title from document",
+      "description": "Exact description from document or brief summary",
+      "type": "kpi" | "ksb" | "sales_target" | "goal",
+      "target_value": numeric_value_only_if_present,
+      "source_quote": "REQUIRED: Verbatim quote from document proving this is a target"
     }
   ]
 }
 
-Be thorough but only extract explicit targets. Don't infer targets that aren't clearly stated.`;
+CRITICAL RULES:
+- EVERY target MUST include a source_quote field with verbatim text from the document
+- Return an empty array if NO explicit targets found
+- It is BETTER to extract ZERO targets than to hallucinate ONE
+- When in doubt, LEAVE IT OUT
+
+Extract targets now, following these rules strictly.`;
 
     const userMessage = `Extract all targets from this document:\n\n${document.parsed_content}`;
 
@@ -165,7 +197,7 @@ Be thorough but only extract explicit targets. Don't infer targets that aren't c
         { role: 'user', content: userMessage },
       ],
       systemPrompt,
-      temperature: 0.3,
+      temperature: 0.1, // Lowered from 0.3 to reduce hallucination (industry standard for extraction)
       maxTokens: 16384, // Increased for large documents with many targets
       responseFormat: 'json', // Converts to responseMimeType: 'application/json' in Gemini
     });
@@ -194,10 +226,16 @@ Be thorough but only extract explicit targets. Don't infer targets that aren't c
         parsed = JSON.parse(content);
       }
 
-      console.log('📋 Extracted targets:', parsed.targets?.length || 0);
+      console.log('📊 Extraction Stats:', {
+        totalExtracted: parsed.targets?.length || 0,
+        sourceLength: document.parsed_content.length,
+        provider: 'gemini-2.5-flash',
+        temperature: 0.1,
+      });
 
       if (parsed.targets && Array.isArray(parsed.targets)) {
         console.log('📋 Target titles:', parsed.targets.map((t: any) => t.title));
+        console.log('📋 Source quotes provided:', parsed.targets.filter((t: any) => t.source_quote).length, 'of', parsed.targets.length);
       }
     } catch (parseError) {
       console.error('❌ Failed to parse JSON:', parseError);
@@ -209,7 +247,32 @@ Be thorough but only extract explicit targets. Don't infer targets that aren't c
     }
 
     const targets = parsed.targets || [];
-    const formattedTargets = targets.map((t: any) => ({
+
+    // Post-processing validation: Verify extracted targets against source document
+    const validatedTargets = targets.filter((target: any) => {
+      // Must have source_quote field
+      if (!target.source_quote) {
+        console.warn(`⚠️ Target "${target.title}" excluded: No source quote provided`);
+        return false;
+      }
+
+      // Verify quote exists in source document (case-insensitive)
+      const quoteExists = document.parsed_content
+        .toLowerCase()
+        .includes(target.source_quote.toLowerCase().trim());
+
+      if (!quoteExists) {
+        console.warn(`⚠️ Target "${target.title}" excluded: Source quote not found in document`);
+        console.warn(`   Quote: "${target.source_quote}"`);
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log(`✅ Validated ${validatedTargets.length} of ${targets.length} extracted targets`);
+
+    const formattedTargets = validatedTargets.map((t: any) => ({
       title: t.title || 'Untitled Target',
       description: t.description,
       type: t.type || 'goal',

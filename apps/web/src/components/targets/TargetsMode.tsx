@@ -11,7 +11,7 @@ import { TargetFilters, type TargetTypeFilter, type TargetStatusFilter } from "@
 import type { Target } from "@/types/targets";
 
 export function TargetsMode() {
-  const { targets, loading: isLoading, refetch: fetchTargets, deleteTarget, updateTarget } = useTargets();
+  const { targets, loading: isLoading, refetch: fetchTargets, deleteTarget, archiveTarget, updateTarget } = useTargets();
   const [showUpload, setShowUpload] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -150,6 +150,7 @@ export function TargetsMode() {
           targets={filteredTargets}
           isLoading={isLoading}
           onDelete={deleteTarget}
+          onArchive={archiveTarget}
           onUpdate={handleUpdate}
         />
       </div>

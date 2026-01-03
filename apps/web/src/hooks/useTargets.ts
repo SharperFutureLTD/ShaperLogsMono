@@ -288,6 +288,57 @@ export const useTargets = () => {
     },
   });
 
+  // ARCHIVE MUTATION
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => apiClient.archiveTarget(id),
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      // Remove from active list optimistically
+      queryClient.setQueryData(queryKeys.targets.active(), (old: unknown) => {
+        const oldArray = getTargetArray(old);
+        return oldArray?.filter(t => t.id !== id) || [];
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, id, context) => {
+      console.error('Error archiving target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
+  // UNARCHIVE MUTATION
+  const unarchiveMutation = useMutation({
+    mutationFn: (id: string) => apiClient.unarchiveTarget(id),
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
+      const previousData = queryClient.getQueryData(queryKeys.targets.active());
+
+      // Note: We can't optimistically add it back because we don't have the full object
+      // Let the onSuccess invalidation handle the refresh
+
+      return { previousData };
+    },
+
+    onError: (err, id, context) => {
+      console.error('Error unarchiving target:', err);
+      queryClient.setQueryData(queryKeys.targets.active(), context?.previousData);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+  });
+
   // Backward-compatible wrappers
   const createTarget = useCallback(async (data: Omit<TargetInsert, 'user_id'>): Promise<boolean> => {
     if (!user) return false;
@@ -344,6 +395,26 @@ export const useTargets = () => {
     }
   }, [restoreMutation]);
 
+  const archiveTarget = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await archiveMutation.mutateAsync(id);
+      return true;
+    } catch (err) {
+      console.error('Error in archiveTarget:', err);
+      return false;
+    }
+  }, [archiveMutation]);
+
+  const unarchiveTarget = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await unarchiveMutation.mutateAsync(id);
+      return true;
+    } catch (err) {
+      console.error('Error in unarchiveTarget:', err);
+      return false;
+    }
+  }, [unarchiveMutation]);
+
   const refetch = useCallback(async () => {
     await reactQueryRefetch();
   }, [reactQueryRefetch]);
@@ -360,5 +431,7 @@ export const useTargets = () => {
     updateTargetProgress,
     deleteTarget,
     restoreTarget,
+    archiveTarget,
+    unarchiveTarget,
   };
 };
