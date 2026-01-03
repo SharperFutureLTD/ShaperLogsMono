@@ -333,7 +333,7 @@ class APIClient {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     exchangeCount?: number;
     industry: string;
-    targets?: Target[];
+    targets?: Array<Pick<Target, 'id' | 'name' | 'description' | 'type' | 'target_value' | 'current_value' | 'unit' | 'deadline'>>;
   }) {
     return this.request<{
       message: string;
@@ -359,7 +359,7 @@ class APIClient {
       category?: string;
     };
     industry: string;
-    targets?: Target[];
+    targets?: Array<Pick<Target, 'id' | 'name' | 'description' | 'type' | 'target_value' | 'current_value' | 'unit' | 'deadline'>>;
     employmentStatus?: string;
   }) {
     return this.request<{
