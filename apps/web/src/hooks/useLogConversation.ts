@@ -259,6 +259,9 @@ export function useLogConversation() {
       })));
 
       const encryptedOriginal = await encrypt(originalContent);
+      if (!encryptedOriginal) {
+        throw new Error('Failed to encrypt content');
+      }
 
       // Extract target IDs from mappings and validate UUIDs
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
