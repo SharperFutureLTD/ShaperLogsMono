@@ -92,7 +92,17 @@ export const useTargets = () => {
   // CREATE MUTATION
   const createMutation = useMutation({
     mutationFn: (data: Omit<TargetInsert, 'user_id'>) =>
-      apiClient.createTarget(data),
+      apiClient.createTarget({
+        name: data.name!,
+        description: data.description ?? undefined,
+        type: data.type ?? undefined,
+        target_value: data.target_value ?? undefined,
+        current_value: data.current_value ?? undefined,
+        unit: data.unit ?? undefined,
+        currency_code: data.currency_code ?? undefined,
+        deadline: data.deadline ?? undefined,
+        source_document_id: data.source_document_id ?? undefined,
+      }),
 
     onMutate: async (newTarget) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.targets.active() });
