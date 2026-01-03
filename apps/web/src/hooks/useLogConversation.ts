@@ -155,8 +155,12 @@ export function useLogConversation() {
       setIsLoading(true);
     },
 
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const { newMessages, response, userMessage } = data;
+
+      // Simulate AI "thinking" time for better UX - keep isLoading true during delay
+      // This allows the typing indicator to show while waiting
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
 
       const assistantMessage: Message = {
         role: 'assistant',

@@ -75,57 +75,100 @@ app.openapi(logChatRoute, async (c) => {
     const maxExchanges = 5;
     const shouldSummarize = exchangeCount >= maxExchanges;
 
-    // Build system prompt for conversational logging
-    const systemPrompt = `You are a helpful AI assistant for logging work accomplishments in the ${industry} industry.
+    // Helper: Get industry-specific guidance (restored from legacy)
+    const getIndustryGuidance = (ind: string): string => {
+      const industryGuidance: Record<string, string> = {
+        sales: `Focus on: revenue numbers, deals closed, pipeline value, client relationships, quota attainment, negotiation wins.
+Common skills: CRM tools (Salesforce, HubSpot), prospecting, closing, account management, cold calling.`,
+        engineering: `Focus on: projects completed, systems designed, efficiency improvements, safety metrics, cost savings.
+Common skills: CAD software, project management, technical specifications, compliance, testing.`,
+        software: `Focus on: features shipped, bugs fixed, code reviews, deployments, system architecture, performance improvements.
+Common skills: programming languages, frameworks, DevOps, testing, agile methodologies, APIs.`,
+        research: `Focus on: experiments conducted, publications, patents, discoveries, grant funding, data analysis.
+Common skills: research methodology, statistical analysis, lab techniques, scientific writing, peer review.`,
+        education: `Focus on: students taught, curriculum developed, learning outcomes, mentoring, workshops delivered.
+Common skills: lesson planning, assessment design, classroom management, educational technology, differentiated instruction.`,
+        marketing: `Focus on: campaigns launched, leads generated, conversion rates, brand awareness, content created, ROI metrics.
+Common skills: SEO/SEM, social media, analytics, content creation, marketing automation, branding.`,
+        finance: `Focus on: portfolios managed, returns achieved, audits completed, forecasts accuracy, cost reductions.
+Common skills: financial modeling, analysis, reporting, compliance, risk assessment, Excel/SQL.`,
+        healthcare: `Focus on: patients treated, procedures performed, outcomes improved, certifications maintained, protocols developed.
+Common skills: patient care, medical records, clinical procedures, compliance, team collaboration.`,
+        operations: `Focus on: processes optimized, efficiency gains, cost savings, delivery metrics, projects managed.
+Common skills: project management, logistics, supply chain, process improvement, vendor management.`,
+        general: `Focus on: accomplishments, outcomes, skills demonstrated, metrics achieved, impact made.
+Common skills: communication, problem-solving, teamwork, time management, adaptability.`
+      };
+      return industryGuidance[ind] || industryGuidance.general;
+    };
+
+    // Helper: Build detailed targets context with progress (restored from legacy)
+    const getTargetsContext = (tgts: any[]): string => {
+      if (!tgts || tgts.length === 0) return '';
+
+      let targetsContext = `\n\nUSER'S ACTIVE TARGETS/GOALS:\n`;
+      tgts.forEach((t, i) => {
+        let progress = '';
+        if (t.target_value && t.target_value > 0) {
+          const percentage = Math.round(((t.current_value || 0) / t.target_value) * 100);
+          progress = `${t.current_value || 0}/${t.target_value} ${t.unit || ''} (${percentage}%)`;
+        } else if (t.current_value) {
+          progress = `${t.current_value} ${t.unit || ''}`;
+        } else {
+          progress = 'Not started';
+        }
+        const deadline = t.deadline ? ` - Due: ${new Date(t.deadline).toLocaleDateString()}` : '';
+        const type = t.type ? `[${t.type.toUpperCase()}]` : '';
+        targetsContext += `${i + 1}. ${type} ${t.name}: ${progress}${deadline}\n`;
+        if (t.description) targetsContext += `   Description: ${t.description}\n`;
+      });
+
+      targetsContext += `\nIMPORTANT TARGET-RELATED BEHAVIOR:
+- When the user's work relates to any of these targets, ask specific questions about their progress
+- Probe for measurable contributions (numbers, percentages, amounts)
+- Ask if they hit their daily or weekly goals for relevant targets
+- Connect their achievements to their active goals whenever possible
+- If they mention work related to a target, ask about specific metrics/numbers`;
+
+      return targetsContext;
+    };
+
+    // Build system prompt with legacy structure (proven to work)
+    const systemPrompt = `You are a work logging assistant for a professional in the ${industry.toUpperCase()} field. Your job is to help users document their professional accomplishments through a focused, conversational exchange that digs deeper into their achievements.
+
+INDUSTRY-SPECIFIC GUIDANCE:
+${getIndustryGuidance(industry)}
+${getTargetsContext(targets || [])}
 
 ${getRedactionRulesForContext('chat')}
 
-Your role:
-- Ask friendly, conversational questions to help users document their work
-- REDACT any sensitive information the user shares in your responses
-- Extract key details: tasks completed, skills used, achievements, metrics
-- Keep the conversation natural and encouraging
-- After ${maxExchanges} exchanges, you'll help create a summary
-
-Guidelines:
-- Ask one focused question at a time
-- Be specific about what information you need
-- Acknowledge and validate user responses
-- Look for quantifiable metrics and concrete achievements
-- If user mentions PII (names, companies, amounts), acknowledge but use placeholders in your response
-${targets?.length ? `- Reference these active targets when relevant: ${targets.map((t: any) => t.name).join(', ')}` : ''}
+BEHAVIOR:
+- Ask focused follow-up questions to extract valuable details
+- Be concise and professional - keep questions SHORT (1-2 sentences max)
+- Focus on: skills used, achievements, metrics/numbers, outcomes
+- If user has targets, prioritize questions that help quantify progress toward them
+- Maximum 5 exchanges total (you ask, user responds)
+- After gathering enough info (typically 3-5 exchanges), set shouldSummarize to true
 
 Current exchange: ${exchangeCount + 1} of ${maxExchanges}
 ${shouldSummarize ? '\nThis is the final exchange. Acknowledge their response and let them know you\'re ready to create a summary.' : ''}
 
-IMPORTANT DATA EXTRACTION: Actively extract structured data from the conversation:
-1. Skills: Technical skills, tools, technologies, or soft skills mentioned
-2. Achievements: Concrete accomplishments or completed tasks
-3. Metrics: Quantifiable results (numbers, percentages, timeframes)
-4. Category: The type of work (e.g., "development", "design", "management", "sales")
-
-Extract this data from BOTH the user's messages AND your own responses. Look for:
-- Skills: "used React", "applied leadership", "utilized SQL"
-- Achievements: "completed the feature", "launched the project", "resolved the bug"
-- Metrics: "improved by 20%", "saved 5 hours", "processed 1000 requests"
-
-Return the extracted data even during the conversation (not just at summarization).
-
-Your response MUST be a JSON object with this structure:
+RESPONSE FORMAT:
+Return JSON with:
 {
-  "message": "Your conversational response to the user",
+  "message": "Your conversational response/question (PLAIN TEXT ONLY - NO JSON FORMATTING IN THIS FIELD)",
+  "shouldSummarize": boolean (true when you have enough info),
   "extractedData": {
     "skills": ["skill1", "skill2"],
-    "achievements": ["achievement1", "achievement2"],
-    "metrics": {
-      "metric_name": value,
-      "another_metric": "description"
-    },
-    "category": "work_category"
+    "achievements": ["achievement1"],
+    "metrics": { "key": "value" },
+    "category": "sales|projects|learning|meetings|general"
   }
 }
 
-IMPORTANT: Apply REDACTION in real-time as you respond. Don't echo back sensitive information.`;
+CRITICAL: The "message" field must contain ONLY plain, conversational text. Do NOT include JSON formatting, code blocks, or structured data in the message field itself.
+
+Keep questions short and targeted. Extract data progressively from each response.`;
 
     // Get AI provider and generate response
     const aiProvider = AIProviderFactory.getProvider();

@@ -119,7 +119,7 @@ export function LogConversationBox({
           <div className="flex items-center justify-between px-4 pt-4 pb-2">
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-muted-foreground">
-                // conversation
+                // conversation (up to {maxExchanges} exchanges)
               </span>
               {onClear && (
                 <Button
@@ -143,9 +143,6 @@ export function LogConversationBox({
                   )}
                 />
               ))}
-              <span className="ml-2 font-mono text-xs text-muted-foreground">
-                {exchangeCount}/{maxExchanges}
-              </span>
             </div>
           </div>
 
@@ -248,7 +245,7 @@ export function LogConversationBox({
             placeholder={isRecording ? "recording" : "What did you work on today?"}
             disabled={inputDisabled}
             className={cn(
-              "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-24 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
+              "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-36 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
               isRecording && "placeholder:text-destructive placeholder:animate-pulse"
             )}
             rows={1}
