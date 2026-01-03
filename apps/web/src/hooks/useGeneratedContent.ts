@@ -56,7 +56,12 @@ export const useGeneratedContent = () => {
 
   // SAVE MUTATION
   const saveMutation = useMutation({
-    mutationFn: (data: Omit<GeneratedContentInsert, 'user_id'>) =>
+    mutationFn: (data: {
+      type: string;
+      prompt: string;
+      content: string;
+      work_entry_ids?: string[];
+    }) =>
       apiClient.saveGeneratedContent(data),
 
     onMutate: async (newContent) => {
@@ -152,7 +157,12 @@ export const useGeneratedContent = () => {
   });
 
   // Backward-compatible wrappers
-  const saveContent = useCallback(async (data: Omit<GeneratedContentInsert, 'user_id'>): Promise<boolean> => {
+  const saveContent = useCallback(async (data: {
+    type: string;
+    prompt: string;
+    content: string;
+    work_entry_ids?: string[];
+  }): Promise<boolean> => {
     if (!user) return false;
     try {
       await saveMutation.mutateAsync(data);
