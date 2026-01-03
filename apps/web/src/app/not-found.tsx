@@ -1,7 +1,5 @@
 import Link from 'next/link';
 
-export const dynamic = 'force-static';
-
 export default function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
