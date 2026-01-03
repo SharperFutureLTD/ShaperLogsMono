@@ -209,7 +209,8 @@ export function useLogConversation() {
         type: t.type,
         target_value: t.target_value,
         current_value: t.current_value,
-        unit: t.unit
+        unit: t.unit,
+        deadline: t.deadline
       }));
 
       // Call REST API instead of Edge Function
