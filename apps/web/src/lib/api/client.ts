@@ -319,7 +319,7 @@ class APIClient {
   async generateContent(data: {
     prompt: string;
     type: string;
-    workEntries?: WorkEntry[];
+    workEntries?: Array<Pick<WorkEntry, 'redacted_summary' | 'skills' | 'achievements' | 'metrics' | 'category' | 'created_at'>>;
     industry: string;
     contextDocument?: string;
   }) {
