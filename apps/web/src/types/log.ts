@@ -45,7 +45,7 @@ export interface SmartData {
 
 export interface TargetMapping {
   targetId: string;
-  targetName: string;
+  targetName?: string;
   contributionValue?: number;
   contributionNote?: string;
   smart?: SmartData;
