@@ -9,7 +9,9 @@
       "Bash(xargs kill:*)",
       "Bash(curl:*)",
       "Bash(npm run dev)",
-      "WebFetch(domain:docs.stripe.com)"
+      "WebFetch(domain:docs.stripe.com)",
+      "Bash(find:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

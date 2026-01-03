@@ -1,64 +1,84 @@
-'use client'
+"use client";
 
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { apiClient } from '@/lib/api/client';
-import { CheckCircle2, ArrowLeft } from 'lucide-react';
-import { loadStripe, Stripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useSubscription, useBillingHistory } from '@/hooks/useSubscription';
+import { useState, useEffect, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api/client";
+import { CheckCircle2, ArrowLeft } from "lucide-react";
+import { loadStripe, Stripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useSubscription, useBillingHistory } from "@/hooks/useSubscription";
 
 // Initialize Stripe Promise
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
 
 // Dark theme appearance configuration
 const DARK_APPEARANCE = {
-  theme: 'dark' as const,
+  theme: "night" as const,
   variables: {
-    colorPrimary: '#22c55e',          // Terminal green accent
-    colorBackground: '#0a0a0a',        // App background
-    colorText: '#f2f2f2',              // App foreground text
-    colorDanger: '#ef4444',            // Red for errors
-    colorTextSecondary: '#a3a3a3',     // Muted text
-    colorBorder: '#262626',            // Border color
-    fontFamily: 'Geist Mono, ui-monospace, monospace',
-    fontSizeBase: '13px',
-    fontWeightNormal: '400',
-    borderRadius: '4px',
-    spacingUnit: '4px',
+    colorPrimary: "#22c55e", // Terminal green accent
+    colorBackground: "#0a0a0a", // App background
+    colorText: "#f2f2f2", // App foreground text
+    colorDanger: "#ef4444", // Red for errors
+    colorTextSecondary: "#a3a3a3", // Muted text
+    colorBorder: "#262626", // Border color
+    fontFamily: "Geist Mono, ui-monospace, monospace",
+    fontSizeBase: "13px",
+    fontWeightNormal: "400",
+    borderRadius: "4px",
+    spacingUnit: "4px",
   },
   rules: {
-    '.Input': {
-      border: '1px solid #262626',
-      backgroundColor: '#0f0f0f',
-      boxShadow: 'none',
+    ".Input": {
+      border: "1px solid #262626",
+      backgroundColor: "#0f0f0f",
+      boxShadow: "none",
     },
-    '.Input:focus': {
-      border: '1px solid #22c55e',
-      boxShadow: '0 0 0 2px rgba(34, 197, 94, 0.2)',
-      outline: 'none',
+    ".Input:focus": {
+      border: "1px solid #22c55e",
+      boxShadow: "0 0 0 2px rgba(34, 197, 94, 0.2)",
+      outline: "none",
     },
-    '.Label': {
-      color: '#f2f2f2',
-      fontSize: '13px',
-      fontWeight: '500',
+    ".Label": {
+      color: "#f2f2f2",
+      fontSize: "13px",
+      fontWeight: "500",
     },
-    '.Tab': {
-      border: '1px solid #262626',
-      backgroundColor: '#0f0f0f',
+    ".Tab": {
+      border: "1px solid #262626",
+      backgroundColor: "#0f0f0f",
     },
-    '.Tab:hover': {
-      backgroundColor: '#1a1a1a',
+    ".Tab:hover": {
+      backgroundColor: "#1a1a1a",
     },
-    '.Tab--selected': {
-      borderColor: '#22c55e',
-      backgroundColor: '#0f0f0f',
+    ".Tab--selected": {
+      borderColor: "#22c55e",
+      backgroundColor: "#0f0f0f",
     },
-  }
+  },
 };
 
 // Checkout Form Component
@@ -85,12 +105,12 @@ function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
       });
 
       if (error) {
-        toast.error(error.message || 'Payment failed');
+        toast.error(error.message || "Payment failed");
       } else {
         onSuccess();
       }
     } catch (err) {
-      toast.error('Payment failed. Please try again.');
+      toast.error("Payment failed. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -104,7 +124,7 @@ function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
         disabled={!stripe || isProcessing}
         className="w-full font-mono"
       >
-        {isProcessing ? 'Processing...' : 'Subscribe Now'}
+        {isProcessing ? "Processing..." : "Subscribe Now"}
       </Button>
     </form>
   );
@@ -128,10 +148,10 @@ export default function BillingPage() {
   const { data: billingHistory } = useBillingHistory();
 
   useEffect(() => {
-    const success = searchParams.get('success');
-    if (success === 'true') {
-      toast.success('Subscription successful! Welcome to premium.');
-      router.replace('/billing');
+    const success = searchParams.get("success");
+    if (success === "true") {
+      toast.success("Subscription successful! Welcome to premium.");
+      router.replace("/billing");
     }
   }, [searchParams, router]);
 
@@ -143,11 +163,11 @@ export default function BillingPage() {
         setClientSecret(clientSecret);
         setIsCheckoutOpen(true);
       } else {
-        throw new Error('No client secret returned');
+        throw new Error("No client secret returned");
       }
     } catch (error) {
-      console.error('Subscription error:', error);
-      toast.error('Failed to start subscription. Please try again.');
+      console.error("Subscription error:", error);
+      toast.error("Failed to start subscription. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -161,8 +181,8 @@ export default function BillingPage() {
         window.location.href = url;
       }
     } catch (error) {
-      console.error('Portal error:', error);
-      toast.error('Failed to open billing portal.');
+      console.error("Portal error:", error);
+      toast.error("Failed to open billing portal.");
     } finally {
       setLoading(false);
     }
@@ -176,7 +196,7 @@ export default function BillingPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
             aria-label="Go back"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -189,7 +209,9 @@ export default function BillingPage() {
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* Intro */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">subscription</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">
+            subscription
+          </h2>
           <p className="font-mono text-sm text-foreground">
             Manage your subscription and billing details.
           </p>
@@ -198,7 +220,9 @@ export default function BillingPage() {
         {/* Active Subscription Card */}
         {hasSubscription && (
           <section>
-            <h2 className="font-mono text-xs text-muted-foreground mb-2">current subscription</h2>
+            <h2 className="font-mono text-xs text-muted-foreground mb-2">
+              current subscription
+            </h2>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -207,8 +231,12 @@ export default function BillingPage() {
                 </CardTitle>
                 <CardDescription>
                   {cancelAtPeriodEnd
-                    ? `Cancels on ${new Date(currentPeriodEnd! * 1000).toLocaleDateString()}`
-                    : `Renews on ${new Date(currentPeriodEnd! * 1000).toLocaleDateString()}`}
+                    ? `Cancels on ${new Date(
+                        currentPeriodEnd! * 1000
+                      ).toLocaleDateString()}`
+                    : `Renews on ${new Date(
+                        currentPeriodEnd! * 1000
+                      ).toLocaleDateString()}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -218,8 +246,8 @@ export default function BillingPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {cancelAtPeriodEnd
-                    ? 'Your subscription is scheduled to cancel. You\'ll have access until the end of your billing period.'
-                    : 'Your subscription is active. You have full access to all premium features.'}
+                    ? "Your subscription is scheduled to cancel. You'll have access until the end of your billing period."
+                    : "Your subscription is active. You have full access to all premium features."}
                 </p>
               </CardContent>
               <CardFooter className="flex gap-4">
@@ -230,10 +258,14 @@ export default function BillingPage() {
                     disabled={isCancelling}
                     className="font-mono"
                   >
-                    {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                    {isCancelling ? "Cancelling..." : "Cancel Subscription"}
                   </Button>
                 )}
-                <Button variant="outline" onClick={handleManage} className="font-mono">
+                <Button
+                  variant="outline"
+                  onClick={handleManage}
+                  className="font-mono"
+                >
                   Manage Billing
                 </Button>
               </CardFooter>
@@ -244,11 +276,15 @@ export default function BillingPage() {
         {/* Available Plans - Only show when not subscribed */}
         {!hasSubscription && (
           <section>
-            <h2 className="font-mono text-xs text-muted-foreground mb-2">available plans</h2>
+            <h2 className="font-mono text-xs text-muted-foreground mb-2">
+              available plans
+            </h2>
             <Card>
               <CardHeader>
                 <CardTitle>Pro Plan</CardTitle>
-                <CardDescription>Unlock unlimited AI generations and advanced features.</CardDescription>
+                <CardDescription>
+                  Unlock unlimited AI generations and advanced features.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-baseline gap-1">
@@ -271,10 +307,19 @@ export default function BillingPage() {
                 </ul>
               </CardContent>
               <CardFooter className="flex gap-4">
-                <Button onClick={handleSubscribe} disabled={loading} className="w-full sm:w-auto font-mono">
-                  {loading ? 'Processing...' : 'Subscribe Now'}
+                <Button
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                  className="w-full sm:w-auto font-mono"
+                >
+                  {loading ? "Processing..." : "Subscribe Now"}
                 </Button>
-                <Button variant="outline" onClick={handleManage} disabled={loading} className="w-full sm:w-auto font-mono">
+                <Button
+                  variant="outline"
+                  onClick={handleManage}
+                  disabled={loading}
+                  className="w-full sm:w-auto font-mono"
+                >
                   Manage Subscription
                 </Button>
               </CardFooter>
@@ -283,57 +328,68 @@ export default function BillingPage() {
         )}
 
         {/* Billing History */}
-        {hasSubscription && billingHistory && billingHistory.invoices.length > 0 && (
-          <section>
-            <h2 className="font-mono text-xs text-muted-foreground mb-2">billing history</h2>
-            <Card>
-              <CardHeader>
-                <CardTitle>Invoices</CardTitle>
-                <CardDescription>Your recent billing history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {billingHistory.invoices.map((invoice) => (
-                    <div
-                      key={invoice.id}
-                      className="flex items-center justify-between p-3 border border-border rounded-md"
-                    >
-                      <div>
-                        <p className="font-mono text-sm">
-                          {new Date(invoice.created * 1000).toLocaleDateString()}
-                        </p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {invoice.status}
-                        </p>
+        {hasSubscription &&
+          billingHistory &&
+          billingHistory.invoices.length > 0 && (
+            <section>
+              <h2 className="font-mono text-xs text-muted-foreground mb-2">
+                billing history
+              </h2>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Invoices</CardTitle>
+                  <CardDescription>Your recent billing history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {billingHistory.invoices.map((invoice) => (
+                      <div
+                        key={invoice.id}
+                        className="flex items-center justify-between p-3 border border-border rounded-md"
+                      >
+                        <div>
+                          <p className="font-mono text-sm">
+                            {new Date(
+                              invoice.created * 1000
+                            ).toLocaleDateString()}
+                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {invoice.status}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-mono text-sm font-bold">
+                            {(invoice.amountPaid / 100).toFixed(2)}{" "}
+                            {invoice.currency.toUpperCase()}
+                          </span>
+                          {invoice.invoicePdf && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                window.open(invoice.invoicePdf, "_blank")
+                              }
+                              className="font-mono text-xs"
+                            >
+                              Download
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-mono text-sm font-bold">
-                          {(invoice.amountPaid / 100).toFixed(2)} {invoice.currency.toUpperCase()}
-                        </span>
-                        {invoice.invoicePdf && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(invoice.invoicePdf, '_blank')}
-                            className="font-mono text-xs"
-                          >
-                            Download
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        )}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
       </main>
 
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
         <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col p-0">
           <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="font-mono">Complete Subscription</DialogTitle>
+            <DialogTitle className="font-mono">
+              Complete Subscription
+            </DialogTitle>
             <DialogDescription className="font-mono text-xs">
               Secure payment via Stripe - £1.99/month
             </DialogDescription>
