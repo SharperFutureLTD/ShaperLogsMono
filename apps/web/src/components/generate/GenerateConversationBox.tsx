@@ -89,7 +89,7 @@ export function GenerateConversationBox({
           onKeyDown={handleKeyDown}
           placeholder="Describe what you'd like to generate..."
           disabled={isGenerating}
-          className="min-h-[100px] resize-none pr-12 pb-12 font-mono text-sm"
+          className="min-h-[100px] resize-none pr-12 pb-12 font-mono text-base md:text-sm py-2 leading-snug"
         />
         
         {/* File attachment area */}
