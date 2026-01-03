@@ -11,7 +11,7 @@ import { GenerateMode } from '@/components/generate/GenerateMode'
 import { TargetsMode } from '@/components/targets/TargetsMode'
 
 export default function DashboardPage() {
-  const { profile, loading, completeOnboarding } = useProfile()
+  const { profile, loading, completeOnboarding, isCompletingOnboarding } = useProfile()
   const [mode, setMode] = useState<Mode>('log')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const needsOnboarding = !profile?.industry || !profile?.employment_status
 
   if (needsOnboarding) {
-    return <Onboarding onComplete={completeOnboarding} />
+    return <Onboarding onComplete={completeOnboarding} isSubmitting={isCompletingOnboarding} />
   }
 
   return (

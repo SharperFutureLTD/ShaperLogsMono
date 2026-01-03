@@ -260,6 +260,7 @@ export const useProfile = () => {
     updateStudyField,
     updateProfile,
     completeOnboarding,
+    isCompletingOnboarding: completeOnboardingMutation.isPending,
     needsOnboarding,
     refetch,
   };

@@ -39,7 +39,7 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
     return 1;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === 'status' && selectedStatus) {
       if (selectedStatus === 'student') {
         setStep('field');
@@ -65,19 +65,19 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
     } else if (step === 'history') {
       // Final completion
       if (selectedStatus === 'student' && selectedStudyField) {
-        onComplete({
+        await onComplete({
           employmentStatus: selectedStatus,
           industry: selectedStudyField,
           studyField: selectedStudyField,
         });
       } else if (selectedStatus === 'apprentice' && selectedStudyField && selectedIndustry) {
-        onComplete({
+        await onComplete({
           employmentStatus: selectedStatus,
           industry: selectedIndustry,
           studyField: selectedStudyField,
         });
       } else if (selectedStatus && selectedIndustry) {
-        onComplete({
+        await onComplete({
           employmentStatus: selectedStatus,
           industry: selectedIndustry,
         });
@@ -105,15 +105,15 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     // If skipping from history, just complete
     if (step === 'history') {
-      handleContinue();
+      await handleContinue();
       return;
     }
-    
+
     // Otherwise skip entire flow
-    onComplete({
+    await onComplete({
       employmentStatus: selectedStatus || 'employed',
       industry: 'general',
     });
