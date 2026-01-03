@@ -1,0 +1,12 @@
+# Railway configuration for Next.js web app
+[build]
+builder = "nixpacks"
+buildCommand = "cd apps/web && npm install && npm run build"
+
+[deploy]
+startCommand = "cd apps/web && npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "web"
