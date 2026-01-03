@@ -4,6 +4,6 @@ builder = "nixpacks"
 buildCommand = "npm install && npm run build --workspace=@sharper-logs/api"
 
 [deploy]
-startCommand = "npm run start --workspace=@sharper-logs/api"
+startCommand = "cd packages/api && npm start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
