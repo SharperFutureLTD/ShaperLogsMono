@@ -25,7 +25,7 @@ export const useGeneratedContent = () => {
     queryKey: queryKeys.generatedContent.lists(),
     queryFn: () => apiClient.getGeneratedContent(),
     enabled: !!user,
-    select: (response) => response.data,
+    select: (response) => response.data as GeneratedContent[],
   });
 
   // Real-time subscription for cache invalidation
