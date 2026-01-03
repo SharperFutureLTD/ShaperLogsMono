@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 export function GenerateHistory() {
   const { user } = useAuth();
-  const { content, isLoading, deleteContent } = useGeneratedContent();
+  const { content, loading: isLoading, deleteContent } = useGeneratedContent();
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('generate-date-filter', 'all', user?.id);
   const [typeFilter, setTypeFilter] = usePersistedState<string[]>('generate-type-filter', [], user?.id);
 
