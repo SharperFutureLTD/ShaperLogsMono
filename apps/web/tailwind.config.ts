@@ -17,6 +17,18 @@ export default {
         mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
         sans: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
       },
+      fontSize: {
+        // Responsive heading scales for mobile optimization
+        'heading-xl': ['1.75rem', { lineHeight: '2rem' }],      // 28px mobile
+        'heading-xl-md': ['2.25rem', { lineHeight: '2.5rem' }], // 36px desktop
+        'heading-lg': ['1.5rem', { lineHeight: '2rem' }],       // 24px mobile
+        'heading-lg-md': ['2rem', { lineHeight: '2.5rem' }],    // 32px desktop
+        'heading-md': ['1.25rem', { lineHeight: '1.75rem' }],   // 20px mobile
+        'heading-md-md': ['1.5rem', { lineHeight: '2rem' }],    // 24px desktop
+      },
+      spacing: {
+        'touch': '44px', // WCAG 2.1 AA minimum touch target
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

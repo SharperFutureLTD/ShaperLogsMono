@@ -152,7 +152,7 @@ export function LogConversationBox({
           {/* Messages */}
           <div
             ref={messagesRef}
-            className="space-y-3 max-h-[250px] overflow-y-auto px-4 pb-3"
+            className="space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto px-4 pb-3"
           >
             {messages.map((message, index) => {
               const isLastUserMessage = message.role === "user" && index === messages.length - 2; // Assuming assistant replied last
@@ -175,7 +175,7 @@ export function LogConversationBox({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                       onClick={() => {
                         if (onUndo) {
                           onUndo();
@@ -185,12 +185,12 @@ export function LogConversationBox({
                       }}
                       title="Edit message"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   )}
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-md px-3 py-2 font-mono text-sm",
+                      "max-w-[90%] md:max-w-[85%] rounded-md px-3 py-2 font-mono text-sm",
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground"

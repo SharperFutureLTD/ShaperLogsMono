@@ -11,7 +11,11 @@
       "Bash(npm run dev)",
       "WebFetch(domain:docs.stripe.com)",
       "Bash(find:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(timeout 5 npm start)"
     ]
   }
 }

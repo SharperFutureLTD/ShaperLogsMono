@@ -111,13 +111,13 @@ export function TargetCard({ target, evidenceCount = 0, onDelete, onClick }: Tar
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            className="h-8 w-8 md:h-6 md:w-6 text-muted-foreground hover:text-destructive"
             onClick={(e) => {
               e.stopPropagation();
               setShowDeleteDialog(true);
             }}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-4 w-4 md:h-3 md:w-3" />
           </Button>
         </div>
       </div>

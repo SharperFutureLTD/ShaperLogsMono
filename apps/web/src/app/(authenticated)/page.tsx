@@ -47,10 +47,10 @@ export default function DashboardPage() {
       <main className="container max-w-2xl mx-auto px-4 pt-24 pb-8">
         {/* Title Section */}
         <div className="text-center mb-10">
-          <h2 className="font-sans text-4xl font-bold tracking-tight">
+          <h2 className="font-sans text-2xl md:text-4xl font-bold tracking-tight">
             {getTitle()}
           </h2>
-          <p className="mt-3 text-base text-muted-foreground font-mono">
+          <p className="mt-2 md:mt-3 text-sm md:text-base text-muted-foreground font-mono">
             {getSubtitle()}
           </p>
         </div>

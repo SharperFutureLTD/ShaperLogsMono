@@ -216,10 +216,10 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-mono font-bold text-foreground mb-2">
+          <h1 className="text-xl md:text-2xl font-mono font-bold text-foreground mb-2">
             {config.title}<span className="cursor-blink">_</span>
           </h1>
-          <p className="text-muted-foreground font-mono text-sm">
+          <p className="text-muted-foreground font-mono text-xs md:text-sm">
             {config.subtitle}
           </p>
         </div>

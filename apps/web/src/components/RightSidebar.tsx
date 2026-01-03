@@ -45,7 +45,7 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
       />
 
       {/* Sidebar */}
-      <aside className="fixed right-0 top-0 z-50 h-full w-72 border-l border-border bg-card slide-in-right">
+      <aside className="fixed right-0 top-0 z-50 h-full w-[85vw] max-w-sm border-l border-border bg-card slide-in-right">
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
@@ -72,21 +72,21 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
           <nav className="flex-1 p-4 space-y-2">
             <button
               onClick={handleProfileClick}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono">profile</span>
             </button>
             <button
               onClick={handleSettingsClick}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono">settings</span>
             </button>
             <button
               onClick={handleBillingClick}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono">billing</span>

@@ -40,7 +40,7 @@ export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
             key={id}
             onClick={() => onModeChange(id)}
             className={cn(
-              "flex-1 min-w-[100px] relative flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 z-10",
+              "flex-1 min-w-[100px] relative flex items-center justify-center gap-2 px-4 py-3 md:py-2 text-sm font-medium rounded-lg transition-colors duration-200 z-10",
               "active:scale-[0.98]",
               isActive
                 ? "text-primary-foreground"
