@@ -7,8 +7,8 @@ import { apiClient } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { useAuth } from './useAuth';
 import type { Database } from '@/integrations/supabase/types';
+import type { Target } from '@/types/targets';
 
-type Target = Database['public']['Tables']['targets']['Row'];
 type TargetInsert = Database['public']['Tables']['targets']['Insert'];
 type TargetUpdate = Database['public']['Tables']['targets']['Update'];
 
@@ -61,7 +61,7 @@ export const useTargets = () => {
     queryKey: queryKeys.targets.active(),
     queryFn: () => apiClient.getTargets(true), // is_active=true
     enabled: !!user,
-    select: (response) => response.data,
+    select: (response) => response.data as Target[],
   });
 
   // Real-time subscription
