@@ -169,11 +169,12 @@ export function useLogConversation() {
 
       // Merge extracted data
       if (response.extractedData) {
+        const extracted = response.extractedData;
         setExtractedData(prev => ({
-          skills: [...new Set([...prev.skills, ...(response.extractedData.skills || [])])],
-          achievements: [...new Set([...prev.achievements, ...(response.extractedData.achievements || [])])],
-          metrics: { ...prev.metrics, ...(response.extractedData.metrics || {}) },
-          category: response.extractedData.category || prev.category
+          skills: [...new Set([...prev.skills, ...(extracted.skills || [])])],
+          achievements: [...new Set([...prev.achievements, ...(extracted.achievements || [])])],
+          metrics: { ...prev.metrics, ...(extracted.metrics || {}) },
+          category: extracted.category || prev.category
         }));
       }
 
