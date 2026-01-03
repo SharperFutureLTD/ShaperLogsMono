@@ -248,7 +248,7 @@ export function LogConversationBox({
             placeholder={isRecording ? "recording" : "What did you work on today?"}
             disabled={inputDisabled}
             className={cn(
-              "min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-24 py-3 font-mono text-base md:text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+              "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-24 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
               isRecording && "placeholder:text-destructive placeholder:animate-pulse"
             )}
             rows={1}
@@ -256,7 +256,7 @@ export function LogConversationBox({
 
           {/* Blinking cursor when focused and empty */}
           {isFocused && !value && !isRecording && (
-            <span className="absolute left-8 top-3 font-mono text-sm text-foreground cursor-blink">
+            <span className="absolute left-8 top-2 font-mono text-sm text-foreground cursor-blink">
               _
             </span>
           )}
