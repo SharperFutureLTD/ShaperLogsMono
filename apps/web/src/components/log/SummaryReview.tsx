@@ -50,7 +50,7 @@ export function SummaryReview({
           targetName: mapping.targetName,
           contributionValue: mapping.contributionValue,
           targetExists: !!target,
-          targetHasName: target?.name?.trim().length > 0
+          targetHasName: (target?.name?.trim()?.length ?? 0) > 0
         });
       }
 

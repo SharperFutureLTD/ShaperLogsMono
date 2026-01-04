@@ -226,78 +226,83 @@ export function LogConversationBox({
 
       {/* Input area - always visible (except when summarizing) */}
       {!isSummarizing && (
-        <div className="flex items-start gap-2 p-2">
-          {/* Left: Action buttons (vertical stack) */}
-          <div className="flex flex-col gap-2 pt-3">
-            {/* Skip to summary button */}
-            {showSkipButton && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={onSkipToSummary}
-                className="h-11 w-11 rounded-md text-muted-foreground/60 hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-95 transition-all duration-200"
-                title="Skip to summary (fast-forward through remaining questions)"
-              >
-                <FastForward className="h-5 w-5" />
-              </Button>
-            )}
+        <div className="flex flex-col gap-0">
+          {/* Top: Input area */}
+          <div className="flex items-center gap-2 p-3">
+            <div className="relative flex-1">
+              {/* Terminal prompt indicator */}
+              <div className="absolute left-3 top-1/2 -translate-y-[52%] text-primary font-mono text-sm z-10">
+                {">"}
+              </div>
 
-            {/* Undo button */}
-            {onUndo && messages.length > 0 && !isLoading && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={onUndo}
-                className="h-11 w-11 rounded-md text-muted-foreground/60 hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-95 transition-all duration-200"
-                title="Undo last message (removes your last answer and AI's response)"
-              >
-                <RotateCcw className="h-5 w-5" />
-              </Button>
-            )}
-          </div>
-
-          {/* Center: Input with inline action button */}
-          <div className="relative flex-1">
-            {/* Terminal prompt indicator */}
-            <div className="absolute left-3 top-3 text-primary font-mono text-sm z-10">
-              {">"}
-            </div>
-
-            <Textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onKeyDown={handleKeyDown}
-              placeholder={isRecording ? "recording" : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
-              disabled={inputDisabled}
-              className={cn(
-                "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-14 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
-                isRecording && "placeholder:text-destructive placeholder:animate-pulse"
-              )}
-              rows={1}
-            />
-
-            {/* Blinking cursor when focused and empty */}
-            {isFocused && !value && !isRecording && (
-              <span className="absolute left-8 top-2 font-mono text-sm text-foreground cursor-blink">
-                _
-              </span>
-            )}
-
-            {/* Action button (mic/send) */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              <ActionButton
-                mode={actionButtonMode}
-                onMicClick={handleMicClick}
-                onSendClick={handleSubmit}
+              <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                placeholder={isRecording ? "recording" : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
                 disabled={inputDisabled}
+                className={cn(
+                  "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-9 pr-14 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
+                  isRecording && "placeholder:text-destructive placeholder:animate-pulse"
+                )}
+                rows={1}
               />
+
+              {/* Blinking cursor when focused and empty */}
+              {isFocused && !value && !isRecording && (
+                <span className="absolute left-9 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground cursor-blink">
+                  _
+                </span>
+              )}
+
+              {/* Action button (mic/send) */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <ActionButton
+                  mode={actionButtonMode}
+                  onMicClick={handleMicClick}
+                  onSendClick={handleSubmit}
+                  disabled={inputDisabled}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Bottom: Action bar */}
+          {(showSkipButton || (onUndo && messages.length > 0 && !isLoading)) && (
+            <div className="border-t border-border/50 bg-muted/20 px-3 py-2">
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                {onUndo && messages.length > 0 && !isLoading && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onUndo}
+                    className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                    title="Undo last message (removes your last answer and AI's response)"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Undo
+                  </Button>
+                )}
+                {showSkipButton && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onSkipToSummary}
+                    className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                    title="Skip to summary (fast-forward through remaining questions)"
+                  >
+                    <FastForward className="h-4 w-4 mr-2" />
+                    Skip to summary
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
