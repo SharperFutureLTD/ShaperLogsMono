@@ -123,6 +123,7 @@ export const useTargets = () => {
           currency_code: newTarget.currency_code || 'GBP',
           deadline: newTarget.deadline || null,
           source_document_id: newTarget.source_document_id || null,
+          status: 'active',
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
