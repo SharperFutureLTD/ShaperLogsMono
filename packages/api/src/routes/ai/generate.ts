@@ -1,8 +1,15 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
-
 import { createUserClient } from '../../db/client';
+import {
+  getSystemPrompt,
+  getContentTypeInstructions,
+  getFormatTemplate,
+  getToneGuidelines,
+  analyzeUserVoice,
+  formatVoiceProfileForPrompt,
+} from '../../ai/prompts';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -88,25 +95,25 @@ ${entry.category ? `- Category: ${entry.category}` : ''}`;
       })
       .join('\n\n') || 'No recent work history provided.';
 
-    // Build industry-specific system prompt
-    const systemPrompt = `You are a professional ${industry} content writer and career advisor.
-Your task is to help create ${type} content that is:
-- Professional and industry-appropriate
-- Specific and quantifiable where possible
-- Achievement-focused and impact-oriented
-- Tailored to ${industry} industry standards
+    // Analyze user's writing voice from their work entries
+    const voiceProfile = analyzeUserVoice(
+      recentEntries.map((entry: any) => ({
+        summary: entry.redacted_summary || '',
+        skills: entry.skills || [],
+        achievements: entry.achievements || []
+      }))
+    );
 
-Guidelines:
-- Use active voice and strong action verbs
-- Quantify achievements with metrics when available
-- Focus on impact and outcomes, not just tasks
-- Match the tone and style expected for ${type} documents
-- Be concise but comprehensive
-${contextDocument ? `- IMPORTANT: Strictly follow the structure and format provided in the "Context Document" section below.` : ''}`;
+    // Build modular, human-sounding prompt
+    const systemPrompt = getSystemPrompt(industry, type);
+    const typeInstructions = getContentTypeInstructions(type);
+    const formatTemplate = getFormatTemplate(type);
+    const toneGuidelines = getToneGuidelines();
+    const voiceContext = formatVoiceProfileForPrompt(voiceProfile);
 
     const userMessage = `Using the following work history and career background, ${prompt}
 
-${contextDocument ? `\n\nCONTEXT DOCUMENT (Use this structure):\n${contextDocument}\n` : ''}
+${contextDocument ? `\nCONTEXT DOCUMENT (Use this structure):\n${contextDocument}\n\n` : ''}
 
 CAREER HISTORY (Past Roles):
 ${historyContext}
@@ -114,7 +121,21 @@ ${historyContext}
 RECENT WORK LOGS (Current Role):
 ${workHistory}
 
-Please generate the ${type} content.`;
+---
+
+${typeInstructions}
+
+${voiceContext}
+
+Expected Format:
+${formatTemplate}
+
+${toneGuidelines}
+
+IMPORTANT: Provide ONE polished, ready-to-copy ${type.replace('_', ' ')}.
+Do NOT provide multiple options, variations, or ask me to choose.
+Do NOT include meta commentary like "Here's a..." or "Below is...".
+Start directly with the content.`;
 
     // Get AI provider and generate content
     const aiProvider = AIProviderFactory.getProvider();
@@ -123,7 +144,7 @@ Please generate the ${type} content.`;
         { role: 'user', content: userMessage },
       ],
       systemPrompt,
-      temperature: 0.7,
+      temperature: 0.5, // Lower temperature for more consistent, less AI-sounding output
       maxTokens: 8192,
     });
 

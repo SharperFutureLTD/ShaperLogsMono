@@ -99,7 +99,7 @@ Common skills: project management, logistics, supply chain, process improvement,
         general: `Focus on: accomplishments, outcomes, skills demonstrated, metrics achieved, impact made.
 Common skills: communication, problem-solving, teamwork, time management, adaptability.`
       };
-      return industryGuidance[ind] || industryGuidance.general;
+      return (industryGuidance[ind] || industryGuidance.general) as string;
     };
 
     // Helper: Build detailed targets context with progress (restored from legacy)
