@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, Pencil, Loader2, Target } from "lucide-react";
+import { useTargets } from "@/hooks/useTargets";
 import type { SummaryData } from "@/types/log";
 
 interface SummaryReviewProps {
@@ -21,6 +22,49 @@ export function SummaryReview({
 }: SummaryReviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(summary.redactedSummary);
+  const { targets } = useTargets();
+
+  // Filter and validate target mappings before rendering
+  const validTargetMappings = useMemo(() => {
+    if (!summary.targetMappings || !targets) {
+      return [];
+    }
+
+    const valid = summary.targetMappings.filter(mapping => {
+      // Find the actual target in user's targets list
+      const target = targets.find(t => t.id === mapping.targetId);
+
+      // Validate:
+      // 1. Target exists in user's targets list
+      // 2. Target has a non-empty name
+      // 3. Contribution value is valid (> 0)
+      const isValid = target &&
+        target.name &&
+        target.name.trim().length > 0 &&
+        mapping.contributionValue &&
+        mapping.contributionValue > 0;
+
+      if (!isValid) {
+        console.warn('[SummaryReview] Filtered invalid target mapping:', {
+          targetId: mapping.targetId,
+          targetName: mapping.targetName,
+          contributionValue: mapping.contributionValue,
+          targetExists: !!target,
+          targetHasName: target?.name?.trim().length > 0
+        });
+      }
+
+      return isValid;
+    });
+
+    if (valid.length < summary.targetMappings.length) {
+      console.warn(
+        `[SummaryReview] Filtered ${summary.targetMappings.length - valid.length} invalid target mappings`
+      );
+    }
+
+    return valid;
+  }, [summary.targetMappings, targets]);
 
   const handleSave = () => {
     onUpdate(editValue);
@@ -84,13 +128,13 @@ export function SummaryReview({
           </p>
 
           {/* Target Mappings */}
-          {summary.targetMappings && summary.targetMappings.length > 0 && (
-            <div className="mb-4">
-              <span className="font-mono text-xs text-muted-foreground mb-2 block">
-                // linked targets
-              </span>
+          <div className="mb-4">
+            <span className="font-mono text-xs text-muted-foreground mb-2 block">
+              // linked targets
+            </span>
+            {validTargetMappings.length > 0 ? (
               <div className="space-y-2">
-                {summary.targetMappings.map((mapping, i) => (
+                {validTargetMappings.map((mapping, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs font-mono bg-primary/10 px-2 py-1.5 rounded">
                     <Target className="h-3 w-3 text-primary flex-shrink-0" />
                     <span className="text-foreground">{mapping.targetName}</span>
@@ -102,8 +146,12 @@ export function SummaryReview({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-xs font-mono text-muted-foreground italic">
+                No targets linked
+              </div>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-4">

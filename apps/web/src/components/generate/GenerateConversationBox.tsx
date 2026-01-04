@@ -8,6 +8,18 @@ import { GenerateType } from '@/types/generate';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
 
+// File type validation configuration
+const FILE_TYPES = {
+  'application/pdf': { max: 10, label: 'PDF' },
+  'text/plain': { max: 2, label: 'Text' },
+  'text/markdown': { max: 2, label: 'Markdown' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { max: 5, label: 'Word' },
+  'application/msword': { max: 5, label: 'Word' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { max: 10, label: 'Excel' },
+  'text/csv': { max: 10, label: 'CSV' },
+  'application/vnd.ms-excel': { max: 10, label: 'Excel' },
+} as const;
+
 interface GenerateConversationBoxProps {
   prompt: string;
   selectedType: GenerateType;
@@ -46,8 +58,19 @@ export function GenerateConversationBox({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      toast.error('Only PDF files are supported');
+    // Validate file type
+    const fileType = FILE_TYPES[file.type as keyof typeof FILE_TYPES];
+    if (!fileType) {
+      toast.error(`Unsupported file type: ${file.type}. Please use PDF, Word, Excel, CSV, or Text files.`);
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    // Validate file size
+    const maxSizeBytes = fileType.max * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.error(`${fileType.label} files must be under ${fileType.max}MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`);
+      e.target.value = ''; // Reset input
       return;
     }
 
@@ -57,7 +80,7 @@ export function GenerateConversationBox({
       if (result.parsed_content && onContextDocumentChange) {
         onContextDocumentChange(result.parsed_content);
         setFileName(file.name);
-        toast.success('Context document uploaded');
+        toast.success(`Context document uploaded: ${file.name}`);
       } else {
         throw new Error('Failed to parse document content');
       }
@@ -112,7 +135,7 @@ export function GenerateConversationBox({
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept=".pdf"
+                accept=".pdf,.txt,.md,.doc,.docx,.xlsx,.xls,.csv"
                 onChange={handleFileSelect}
                 disabled={isUploading || isGenerating}
               />
@@ -124,7 +147,7 @@ export function GenerateConversationBox({
                 disabled={isUploading || isGenerating}
               >
                 <Paperclip className="h-4 w-4 mr-2" />
-                {isUploading ? 'Uploading...' : 'Attach PDF Context'}
+                {isUploading ? 'Uploading...' : 'Attach Context'}
               </Button>
             </div>
           )}

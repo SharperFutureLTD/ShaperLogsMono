@@ -272,7 +272,7 @@ export function LogConversationBox({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? "recording" : "What did you work on today?"}
+              placeholder={isRecording ? "recording" : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
               disabled={inputDisabled}
               className={cn(
                 "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-8 pr-14 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",

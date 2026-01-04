@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { app } from './server/app';
+import { initializeFileProcessors } from './utils/file-processors/registry';
 import 'dotenv/config';
 
 const port = parseInt(process.env.PORT || '3001');
@@ -7,6 +8,9 @@ const port = parseInt(process.env.PORT || '3001');
 console.log('🚀 Starting Sharper-Logs API Server...');
 console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔌 Port: ${port}`);
+
+// Initialize file processors
+initializeFileProcessors();
 
 serve({
   fetch: app.fetch,

@@ -2,7 +2,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { createUserClient } from '../../db/client';
-import { extractTextFromPDF } from '../../utils/pdf-parser';
+import { FileProcessorFactory } from '../../utils/file-processors/registry';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -26,8 +26,8 @@ const uploadRoute = createRoute({
   method: 'post',
   path: '/api/documents/upload',
   tags: ['Documents'],
-  summary: 'Upload and parse PDF document',
-  description: 'Upload a PDF file, extract text content, and store it in the database. The file is uploaded to Supabase Storage and the text content is parsed and stored for AI processing.',
+  summary: 'Upload and parse document',
+  description: 'Upload a document (PDF, Word, Excel, CSV, or text file), extract text content, and store it in the database. The file is uploaded to Supabase Storage and the text content is parsed and stored for AI processing.',
   request: {
     body: {
       content: {
@@ -96,27 +96,40 @@ app.openapi(uploadRoute, async (c) => {
       }, 400);
     }
 
-    // Validate file type
-    if (file.type !== 'application/pdf') {
+    // Get appropriate file processor
+    const processor = FileProcessorFactory.getProcessor(file.type);
+    if (!processor) {
+      const supportedTypes = FileProcessorFactory.getSupportedMimeTypes();
       return c.json({
-        error: 'Bad Request',
-        message: 'Only PDF files are supported'
+        error: 'Unsupported File Type',
+        message: `File type "${file.type}" is not supported. Allowed types: PDF, Word (.docx, .doc), Excel (.xlsx, .xls), CSV, Text (.txt, .md).`,
+        supportedMimeTypes: supportedTypes
       }, 400);
     }
 
-    // Convert File to Buffer for pdf-parse
+    // Validate file size
+    if (file.size > processor.maxFileSize) {
+      const limitMB = (processor.maxFileSize / (1024 * 1024)).toFixed(1);
+      return c.json({
+        error: 'File Too Large',
+        message: `File exceeds ${limitMB}MB size limit for ${file.type} files.`
+      }, 400);
+    }
+
+    // Convert File to Buffer for processing
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Extract text from PDF
+    // Process file and extract content
     let parsedContent: string;
     try {
-      parsedContent = await extractTextFromPDF(buffer);
-    } catch (pdfError) {
-      console.error('PDF parsing error:', pdfError);
+      const processed = await processor.process(buffer, file.type);
+      parsedContent = processed.content;
+    } catch (processingError) {
+      console.error('File processing error:', processingError);
       return c.json({
-        error: 'PDF Parse Error',
-        message: pdfError instanceof Error ? pdfError.message : 'Failed to parse PDF'
+        error: 'File Processing Error',
+        message: processingError instanceof Error ? processingError.message : 'Failed to process file'
       }, 400);
     }
 
@@ -143,15 +156,17 @@ app.openapi(uploadRoute, async (c) => {
       }, 500);
     }
 
-    // Insert document record with parsed content
-    const { data: document, error: insertError } = await supabase
+    // Insert document record with parsed content and metadata
+    const { data: document, error: insertError} = await supabase
       .from('target_documents')
       .insert({
         user_id: user.id,
         file_name: file.name,
         file_path: uploadData.path,
         document_type: documentType,
-        parsed_content: parsedContent,  // ✅ Populate parsed_content
+        parsed_content: parsedContent,
+        file_size: file.size, // NEW: Track file size
+        mime_type: file.type, // NEW: Track MIME type
       })
       .select()
       .single();

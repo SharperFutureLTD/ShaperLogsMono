@@ -146,12 +146,15 @@ Return a JSON object with this structure:
 Be specific and quantifiable where possible. Focus on impact and outcomes.
 REMEMBER: Apply REDACTION to all sensitive information in the summary, achievements, and metrics.
 
-CRITICAL ANTI-HALLUCINATION RULES:
-1. Do NOT hallucinate targets - only use IDs from the list above
-2. If the user did NOT explicitly mention targets in the conversation, targetMappings MUST be an empty array []
-3. NEVER assign contributionValue unless the user provided specific numbers
-4. If there is ANY doubt about target relevance, DO NOT link it - empty array is correct
-5. The user mentioning work does NOT automatically mean it links to a target`;
+CRITICAL TARGET LINKING RULES (FAILURE = DATA CORRUPTION):
+1. ONLY link targets if the user has targets AND explicitly discussed their progress on those targets
+2. If the targets array is EMPTY, you MUST return an EMPTY targetMappings array - NO EXCEPTIONS
+3. If targets exist, you may ONLY map to target IDs provided in the list above - NEVER invent or use placeholder IDs
+4. NEVER assign contributionValue unless the user provided specific measurable numbers in the conversation
+5. Contribution must be a POSITIVE number (> 0) representing actual progress discussed by the user
+6. When in doubt, DO NOT link - empty targetMappings array is always the safe choice
+7. Returning invalid target IDs or placeholder values corrupts the user interface and destroys trust
+8. The user mentioning general work does NOT automatically mean it relates to any specific target`;
 
     const userMessage = `Summarize this work conversation:\n\n${conversationText}`;
 
@@ -201,32 +204,47 @@ CRITICAL ANTI-HALLUCINATION RULES:
 
     // Validate and filter target mappings (ensure only valid UUIDs and contribution values)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const totalMappings = (parsedResponse.targetMappings || []).length;
     const validTargetMappings = (parsedResponse.targetMappings || []).filter((mapping: any) => {
       // Validate UUID format
       if (!mapping.targetId || !uuidRegex.test(mapping.targetId)) {
-        console.warn(`Invalid target ID format: ${mapping.targetId} - skipping`);
+        console.warn(`[summarize] Invalid target ID format: ${mapping.targetId} - skipping`);
         return false;
       }
 
       // Validate that the ID exists in the provided targets list
       if (!validTargetIds.has(mapping.targetId)) {
-        console.warn(`Hallucinated target ID: ${mapping.targetId} (not in provided list) - skipping`);
+        console.warn(`[summarize] Hallucinated target ID: ${mapping.targetId} (not in provided list) - skipping`);
         return false;
       }
 
-      // Validate contribution value if present
-      if (mapping.contributionValue !== undefined) {
-        const isValidValue = typeof mapping.contributionValue === 'number' &&
-          mapping.contributionValue >= 0 &&
-          mapping.contributionValue <= 100;
-        if (!isValidValue) {
-          console.warn(`Invalid contributionValue for target ${mapping.targetId}: ${mapping.contributionValue} - skipping`);
-          return false;
-        }
+      // Validate contribution value (must be present and valid)
+      if (!mapping.contributionValue || typeof mapping.contributionValue !== 'number') {
+        console.warn(`[summarize] Missing or invalid contributionValue for target ${mapping.targetId} - skipping`);
+        return false;
+      }
+
+      // Contribution must be positive (> 0, not just >= 0)
+      if (mapping.contributionValue <= 0) {
+        console.warn(`[summarize] Invalid contribution value for target ${mapping.targetId}: ${mapping.contributionValue} (must be > 0) - skipping`);
+        return false;
+      }
+
+      // Contribution must be reasonable (< 1000)
+      if (mapping.contributionValue > 1000) {
+        console.warn(`[summarize] Unrealistic contribution value for target ${mapping.targetId}: ${mapping.contributionValue} (max 1000) - skipping`);
+        return false;
       }
 
       return true;
     });
+
+    // Log filtering results
+    if (validTargetMappings.length < totalMappings) {
+      console.warn(
+        `[summarize] Filtered ${totalMappings - validTargetMappings.length} invalid target mappings (${validTargetMappings.length}/${totalMappings} valid)`
+      );
+    }
 
     // Build final response
     const finalResponse = {

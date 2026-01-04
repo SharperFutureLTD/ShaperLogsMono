@@ -133,6 +133,102 @@ The server will start on `http://localhost:3001` with:
 - `POST /api/ai/summarize` - Summarize conversation to structured entry
 - `POST /api/ai/extract-targets` - Extract KPIs/KSBs from documents
 
+### Document Upload & Processing
+- `POST /api/documents/upload` - Upload and process multi-format documents
+
+## Document Upload & Processing
+
+The API supports uploading and processing multiple document formats with automatic text extraction.
+
+### Supported File Formats
+
+| Format | Extensions | Max Size | MIME Type | Use Case |
+|--------|-----------|----------|-----------|----------|
+| **PDF** | `.pdf` | 10MB | `application/pdf` | Target documents, resumes, reports |
+| **Word** | `.docx`, `.doc` | 5MB | `application/vnd.openxmlformats-officedocument.wordprocessingml.document`<br>`application/msword` | Target documents, templates |
+| **Excel** | `.xlsx`, `.xls` | 10MB | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`<br>`application/vnd.ms-excel` | KPI spreadsheets, sales targets |
+| **CSV** | `.csv` | 10MB | `text/csv` | Bulk data, target imports |
+| **Text** | `.txt`, `.md` | 2MB | `text/plain`<br>`text/markdown` | Plain text targets, notes |
+
+### Processing Pipeline
+
+1. **Upload** - File uploaded via multipart/form-data
+2. **Validation** - File type and size checked against processor limits
+3. **Processing** - Appropriate processor extracts text content
+4. **Storage** - File stored in Supabase Storage with user isolation
+5. **Database** - Metadata saved (file_name, file_path, parsed_content, file_size, mime_type)
+
+### File Processors
+
+The API uses a factory pattern to handle different file types:
+
+- **PdfProcessor** - Uses `pdf-parse` for PDF text extraction
+- **WordProcessor** - Uses `mammoth` for Word document processing (.docx best support, .doc limited)
+- **SpreadsheetProcessor** - Uses `xlsx` (SheetJS) for Excel/CSV parsing
+- **TextProcessor** - Direct UTF-8 decoding for plain text files
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3001/api/documents/upload \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@targets.xlsx" \
+  -F "documentType=kpi"
+```
+
+### Example Response
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "110e8400-e29b-41d4-a716-446655440000",
+  "file_name": "targets.xlsx",
+  "file_path": "110e8400-e29b-41d4-a716-446655440000/1704312000000.xlsx",
+  "document_type": "kpi",
+  "parsed_content": "=== Sheet: Q1 Targets ===\nMetric,Target,Current\nRevenue,50000,42000...",
+  "file_size": 15360,
+  "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "created_at": "2024-01-03T12:00:00Z",
+  "updated_at": "2024-01-03T12:00:00Z"
+}
+```
+
+### Error Responses
+
+**Unsupported File Type (400)**
+```json
+{
+  "error": "Unsupported File Type",
+  "message": "File type \"application/zip\" is not supported. Allowed types: PDF, Word (.docx, .doc), Excel (.xlsx, .xls), CSV, Text (.txt, .md).",
+  "supportedMimeTypes": ["application/pdf", "text/plain", ...]
+}
+```
+
+**File Too Large (400)**
+```json
+{
+  "error": "File Too Large",
+  "message": "File exceeds 5MB size limit for application/vnd.openxmlformats-officedocument.wordprocessingml.document files."
+}
+```
+
+**Processing Error (400)**
+```json
+{
+  "error": "File Processing Error",
+  "message": "Word document processing failed: Document appears to be password-protected. Please remove protection and try again."
+}
+```
+
+### Edge Cases Handled
+
+- **Password-protected files** - Detected and rejected with clear error message
+- **Corrupted files** - Caught during parsing with suggestions to re-save
+- **Empty files** - Validated and rejected
+- **Large spreadsheets** - Files >10,000 rows sampled at 5,000 rows
+- **Multi-sheet Excel** - All sheets concatenated with headers
+- **Legacy formats** - .doc and .xls have limited support, recommend converting to .docx/.xlsx
+
 ## Multi-Provider AI Configuration
 
 The API supports three AI providers with automatic fallback:

@@ -16,7 +16,10 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(timeout 5 npm start)",
-      "Bash(npx tailwindcss:*)"
+      "Bash(npx tailwindcss:*)",
+      "Bash(xargs ls:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(ls:*)"
     ]
   }
 }
