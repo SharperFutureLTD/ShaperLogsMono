@@ -175,6 +175,78 @@ app.openapi(createTargetRoute, async (c) => {
   return c.json(data, 201);
 });
 
+// POST /api/targets/bulk - Create multiple targets at once
+const bulkCreateRoute = createRoute({
+  method: 'post',
+  path: '/api/targets/bulk',
+  tags: ['Targets'],
+  middleware: [authMiddleware] as any,
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            targets: z.array(CreateTargetSchema).min(1).max(100),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Targets created',
+      content: {
+        'application/json': {
+          schema: z.object({
+            data: z.array(TargetSchema),
+            count: z.number(),
+          }),
+        },
+      },
+    },
+  },
+});
+
+app.openapi(bulkCreateRoute, async (c) => {
+  const userId = c.get('userId');
+  const token = c.get('token');
+  const supabase = createUserClient(token);
+  const { targets } = c.req.valid('json');
+
+  // Prepare all targets with user_id and defaults
+  const targetsToInsert = targets.map((target) => ({
+    user_id: userId,
+    name: target.name,
+    description: target.description || null,
+    type: target.type || null,
+    target_value: target.target_value || null,
+    current_value: target.current_value || 0,
+    unit: target.unit || null,
+    currency_code: target.currency_code || 'GBP',
+    deadline: target.deadline || null,
+    source_document_id: target.source_document_id || null,
+    is_active: true,
+  }));
+
+  const { data, error } = await supabase
+    .from('targets')
+    .insert(targetsToInsert)
+    .select();
+
+  if (error) {
+    return c.json(
+      {
+        error: 'Database Error',
+        message: error.message,
+        status: 500,
+      },
+      500
+    );
+  }
+
+  return c.json({ data: data || [], count: data?.length || 0 }, 201);
+});
+
 // PUT /api/targets/:id - Update a target
 const updateRoute = createRoute({
   method: 'put',

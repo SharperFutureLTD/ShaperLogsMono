@@ -15,18 +15,24 @@ const UPLOAD_STAGES = [
 
 const EXTRACTION_STAGES = [
   { label: "Parsing file contents...", progress: 0 },
-  { label: "Extracting targets with AI...", progress: 33 },
-  { label: "Validating extracted data...", progress: 66 },
+  { label: "Analyzing document structure...", progress: 18 },
+  { label: "Extracting targets with AI...", progress: 36 },
+  { label: "Identifying KPIs and goals...", progress: 54 },
+  { label: "Validating extracted data...", progress: 72 },
   { label: "Almost done...", progress: 90 },
 ];
 
-const STAGE_DURATION = 2000; // 2 seconds per stage
+// Upload stages: 5 seconds each
+const UPLOAD_STAGE_DURATION = 5000;
+// Extraction stages: 15 seconds each (6 stages × 15s = 90 seconds to reach 90%)
+const EXTRACTION_STAGE_DURATION = 15000;
 
 export function ExtractionLoadingOverlay({ isUploading, isExtracting }: ExtractionLoadingOverlayProps) {
   const [currentStage, setCurrentStage] = useState(0);
   const [progress, setProgress] = useState(0);
 
   const stages = isUploading ? UPLOAD_STAGES : EXTRACTION_STAGES;
+  const stageDuration = isUploading ? UPLOAD_STAGE_DURATION : EXTRACTION_STAGE_DURATION;
 
   // Reset when switching between upload and extraction phases
   useEffect(() => {
@@ -43,10 +49,10 @@ export function ExtractionLoadingOverlay({ isUploading, isExtracting }: Extracti
         }
         return prev; // Stay at final stage
       });
-    }, STAGE_DURATION);
+    }, stageDuration);
 
     return () => clearInterval(stageInterval);
-  }, [stages.length]);
+  }, [stages.length, stageDuration]);
 
   useEffect(() => {
     // Smoothly animate progress to current stage's target
@@ -101,7 +107,10 @@ export function ExtractionLoadingOverlay({ isUploading, isExtracting }: Extracti
 
         {/* Helpful message */}
         <p className="font-mono text-xs text-muted-foreground/70 mt-4 text-center">
-          This may take a moment for larger documents
+          {isExtracting
+            ? "This may take 1-2 minutes for large documents"
+            : "This may take a moment for larger documents"
+          }
         </p>
       </div>
     </div>

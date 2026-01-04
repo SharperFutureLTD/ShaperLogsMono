@@ -9,6 +9,7 @@ import { useTargets } from "@/hooks/useTargets";
 import { toast } from "sonner";
 import type { ExtractedTarget } from "@/types/targets";
 import { ExtractionLoadingOverlay } from "./ExtractionLoadingOverlay";
+import { SavingLoadingOverlay } from "./SavingLoadingOverlay";
 
 // File type validation configuration
 const FILE_TYPES = {
@@ -34,7 +35,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const { uploading: isUploading, extracting: isParsing, extractedTargets, uploadDocument, parseAndExtractTargets, clearExtractedTargets } = useTargetDocuments();
-  const { createTarget } = useTargets();
+  const { createTargetsBulk } = useTargets();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,13 +79,21 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
   };
 
   const handleSaveTargets = async (targets: ExtractedTarget[]) => {
-    console.log('💾 Saving', targets.length, 'targets');
+    console.log('💾 Saving', targets.length, 'targets in bulk');
     setIsSaving(true);
 
-    for (const target of targets) {
-      console.log('💾 Creating target:', target);
-      const success = await createTarget(target);
-      console.log('✅ Target created:', success);
+    try {
+      const success = await createTargetsBulk(targets);
+      console.log('✅ Bulk save result:', success);
+
+      if (success) {
+        toast.success(`Successfully saved ${targets.length} target${targets.length !== 1 ? 's' : ''}`);
+      } else {
+        toast.error('Failed to save targets. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error saving targets:', error);
+      toast.error('Failed to save targets. Please try again.');
     }
 
     console.log('🧹 Clearing extracted targets');
@@ -106,7 +115,12 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
   if (step === 'preview' && extractedTargets.length > 0) {
     console.log('✅ Showing preview screen with', extractedTargets.length, 'targets');
     return (
-      <div className="border border-border rounded-lg p-4 space-y-4">
+      <div className="relative border border-border rounded-lg p-4 space-y-4">
+        {/* Saving overlay */}
+        {isSaving && (
+          <SavingLoadingOverlay targetCount={extractedTargets.length} />
+        )}
+
         <div className="flex items-center justify-between">
           <h3 className="font-mono text-sm font-medium text-foreground">
             Extracted Targets ({extractedTargets.length})

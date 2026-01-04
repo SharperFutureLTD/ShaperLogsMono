@@ -144,6 +144,32 @@ export const useTargets = () => {
     },
   });
 
+  // BULK CREATE MUTATION
+  const bulkCreateMutation = useMutation({
+    mutationFn: (targets: Array<Omit<TargetInsert, 'user_id'>>) =>
+      apiClient.createTargetsBulk(
+        targets.map(t => ({
+          name: t.name!,
+          description: t.description ?? undefined,
+          type: (t.type ?? undefined) as 'kpi' | 'ksb' | 'sales_target' | 'goal' | undefined,
+          target_value: t.target_value ?? undefined,
+          current_value: t.current_value ?? undefined,
+          unit: t.unit ?? undefined,
+          currency_code: t.currency_code ?? undefined,
+          deadline: t.deadline ?? undefined,
+          source_document_id: t.source_document_id ?? undefined,
+        }))
+      ),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.targets.all });
+    },
+
+    onError: (err) => {
+      console.error('Error bulk creating targets:', err);
+    },
+  });
+
   // UPDATE MUTATION
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: TargetUpdate }) =>
@@ -352,6 +378,18 @@ export const useTargets = () => {
     }
   }, [user, createMutation]);
 
+  const createTargetsBulk = useCallback(async (targets: Array<Omit<TargetInsert, 'user_id'>>): Promise<boolean> => {
+    if (!user) return false;
+    if (targets.length === 0) return true;
+    try {
+      await bulkCreateMutation.mutateAsync(targets);
+      return true;
+    } catch (err) {
+      console.error('Error in createTargetsBulk:', err);
+      return false;
+    }
+  }, [user, bulkCreateMutation]);
+
   const updateTarget = useCallback(async (id: string, data: TargetUpdate): Promise<boolean> => {
     try {
       await updateMutation.mutateAsync({ id, data });
@@ -428,6 +466,7 @@ export const useTargets = () => {
     recentlyDeleted,
     refetch,
     createTarget,
+    createTargetsBulk,
     updateTarget,
     updateTargetProgress,
     deleteTarget,

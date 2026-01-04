@@ -157,6 +157,23 @@ class APIClient {
     });
   }
 
+  async createTargetsBulk(targets: Array<{
+    name: string;
+    description?: string;
+    type?: 'kpi' | 'ksb' | 'sales_target' | 'goal';
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    currency_code?: string;
+    deadline?: string;
+    source_document_id?: string;
+  }>) {
+    return this.request<{ data: Target[]; count: number }>('/api/targets/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ targets }),
+    });
+  }
+
   async updateTarget(id: string, data: {
     name?: string;
     description?: string;
