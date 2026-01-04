@@ -12,11 +12,11 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
   : null;
 
 // Initialize Ratelimit
-// 100 requests per 15 minutes
+// 300 requests per 15 minutes (increased for bulk operations)
 const ratelimit = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(100, '15 m'),
+      limiter: Ratelimit.slidingWindow(300, '15 m'),
       analytics: true,
     })
   : null;
@@ -24,7 +24,7 @@ const ratelimit = redis
 // In-memory fallback
 const memoryMap = new Map<string, { count: number; lastReset: number }>();
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_REQUESTS = 100;
+const MAX_REQUESTS = 300;
 
 /**
  * Rate Limiter Middleware
