@@ -29,6 +29,13 @@ export default {
       spacing: {
         'touch': '44px', // WCAG 2.1 AA minimum touch target
       },
+      animationDelay: {
+        '0': '0ms',
+        '75': '75ms',
+        '150': '150ms',
+        '225': '225ms',
+        '300': '300ms',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -119,12 +126,21 @@ export default {
             transform: "translateY(10px)",
           },
         },
+        "wave": {
+          "0%, 100%": {
+            transform: "scaleY(0.5)",
+          },
+          "50%": {
+            transform: "scaleY(1)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         "fade-out": "fade-out 0.3s ease-out",
+        "wave": "wave 1s ease-in-out infinite",
       },
     },
   },
