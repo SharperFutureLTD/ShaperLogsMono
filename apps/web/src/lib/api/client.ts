@@ -511,6 +511,21 @@ class APIClient {
     });
   }
 
+  async createCareerHistoryBulk(items: Array<{
+    title: string;
+    company: string;
+    start_date?: string | null;
+    end_date?: string | null;
+    is_current?: boolean;
+    description?: string | null;
+    skills?: string[];
+  }>) {
+    return this.request<{ data: any[]; count: number }>('/api/career/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+  }
+
   async uploadResume(file: File) {
     const formData = new FormData();
     formData.append('file', file);

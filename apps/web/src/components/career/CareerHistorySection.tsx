@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Upload, Plus, Trash2, Briefcase } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ResumeLoadingOverlay } from './ResumeLoadingOverlay';
 
 interface CareerHistoryItem {
   id: string;
@@ -62,22 +63,31 @@ export function CareerHistorySection() {
     setIsUploading(true);
     try {
       const { history } = await apiClient.uploadResume(file);
-      
-      // Add each extracted item
-      for (const item of history) {
-        await addMutation.mutateAsync(item);
+
+      if (history.length === 0) {
+        toast.info('No career history found in the document');
+        return;
       }
+
+      // Bulk save all extracted items in a single request
+      await apiClient.createCareerHistoryBulk(history);
+      queryClient.invalidateQueries({ queryKey: ['career-history'] });
       toast.success(`Imported ${history.length} roles from resume`);
     } catch (error) {
       console.error(error);
       toast.error('Failed to parse resume');
     } finally {
       setIsUploading(false);
+      // Reset the file input
+      e.target.value = '';
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading overlay during resume parsing */}
+      <ResumeLoadingOverlay isProcessing={isUploading} />
+
       <div className="flex items-center justify-between">
         <h2 className="font-mono text-sm text-muted-foreground">career history</h2>
         <div className="flex gap-2">
@@ -85,16 +95,16 @@ export function CareerHistorySection() {
             <input
               type="file"
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              accept=".pdf"
+              accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
               onChange={handleFileUpload}
               disabled={isUploading}
             />
             <Button variant="outline" size="sm" className="font-mono gap-2" disabled={isUploading}>
               <Upload className="h-3 w-3" />
-              {isUploading ? 'Parsing...' : 'Import Resume'}
+              Import Resume
             </Button>
           </div>
-          <Button size="sm" onClick={() => setIsAdding(true)} className="font-mono gap-2">
+          <Button size="sm" onClick={() => setIsAdding(true)} className="font-mono gap-2" disabled={isUploading}>
             <Plus className="h-3 w-3" />
             Add Role
           </Button>

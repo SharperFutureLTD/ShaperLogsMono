@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { StatusSelector, EmploymentStatus } from '@/components/StatusSelector';
 import { StudyFieldSelector } from '@/components/StudyFieldSelector';
@@ -19,11 +19,64 @@ interface OnboardingProps {
 
 type OnboardingStep = 'status' | 'industry' | 'field' | 'history';
 
+interface PersistedOnboardingState {
+  step: OnboardingStep;
+  selectedStatus: EmploymentStatus | null;
+  selectedIndustry: string | null;
+  selectedStudyField: string | null;
+}
+
+const ONBOARDING_STORAGE_KEY = 'sharper-logs-onboarding-state';
+
+function loadOnboardingState(): PersistedOnboardingState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored) as PersistedOnboardingState;
+    }
+  } catch (e) {
+    console.error('Failed to load onboarding state:', e);
+  }
+  return null;
+}
+
+function saveOnboardingState(state: PersistedOnboardingState): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Failed to save onboarding state:', e);
+  }
+}
+
+function clearOnboardingState(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear onboarding state:', e);
+  }
+}
+
 export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps) => {
-  const [step, setStep] = useState<OnboardingStep>('status');
-  const [selectedStatus, setSelectedStatus] = useState<EmploymentStatus | null>(null);
-  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
-  const [selectedStudyField, setSelectedStudyField] = useState<string | null>(null);
+  // Load persisted state on mount
+  const persistedState = loadOnboardingState();
+
+  const [step, setStep] = useState<OnboardingStep>(persistedState?.step || 'status');
+  const [selectedStatus, setSelectedStatus] = useState<EmploymentStatus | null>(persistedState?.selectedStatus || null);
+  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(persistedState?.selectedIndustry || null);
+  const [selectedStudyField, setSelectedStudyField] = useState<string | null>(persistedState?.selectedStudyField || null);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    saveOnboardingState({
+      step,
+      selectedStatus,
+      selectedIndustry,
+      selectedStudyField,
+    });
+  }, [step, selectedStatus, selectedIndustry, selectedStudyField]);
 
   const getTotalSteps = () => {
     // History is always the last step now
@@ -63,7 +116,8 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
         setStep('history');
       }
     } else if (step === 'history') {
-      // Final completion
+      // Final completion - clear localStorage before completing
+      clearOnboardingState();
       if (selectedStatus === 'student' && selectedStudyField) {
         await onComplete({
           employmentStatus: selectedStatus,
@@ -113,13 +167,14 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
   };
 
   const handleSkip = async () => {
-    // If skipping from history, just complete
+    // If skipping from history, just complete (handleContinue clears localStorage)
     if (step === 'history') {
       await handleContinue();
       return;
     }
 
-    // Otherwise skip entire flow
+    // Otherwise skip entire flow - clear localStorage before completing
+    clearOnboardingState();
     await onComplete({
       employmentStatus: selectedStatus || 'employed',
       industry: 'general',
