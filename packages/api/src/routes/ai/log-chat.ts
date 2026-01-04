@@ -3,6 +3,9 @@ import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
 import { getRedactionRulesForContext } from '../../ai/prompts/redaction-rules';
 import { redactPII } from '../../utils/redaction';
+import { getCategoriesForUser } from '../../constants/categories';
+import { validateCategory } from '../../utils/category-validator';
+import { createUserClient } from '../../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -71,9 +74,22 @@ const logChatRoute = createRoute({
 app.openapi(logChatRoute, async (c) => {
   try {
     const { messages, exchangeCount = 0, industry, targets } = c.req.valid('json');
+    const user = c.get('user');
 
     const maxExchanges = 5;
     const shouldSummarize = exchangeCount >= maxExchanges;
+
+    // Fetch user's employment status for category options
+    const supabase = createUserClient(c);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('employment_status')
+      .eq('id', user.id)
+      .single();
+
+    const employmentStatus = profile?.employment_status || 'professional';
+    const categoryList = getCategoriesForUser(employmentStatus as any);
+    const categories = categoryList.join('|');
 
     // Helper: Get industry-specific guidance (restored from legacy)
     const getIndustryGuidance = (ind: string): string => {
@@ -168,9 +184,15 @@ Return JSON with:
     "skills": ["skill1", "skill2"],
     "achievements": ["achievement1"],
     "metrics": { "key": "value" },
-    "category": "sales|projects|learning|meetings|general"
+    "category": "${categories}"
   }
 }
+
+CRITICAL CATEGORY RULES:
+- Choose ONLY ONE category from the exact list above: ${categories}
+- Do NOT create new categories or combine categories with slashes
+- Match the work to the closest single category
+- Use "General" if unsure
 
 CRITICAL: The "message" field must contain ONLY plain, conversational text. Do NOT include JSON formatting, code blocks, or structured data in the message field itself.
 
@@ -218,28 +240,67 @@ Keep questions short and targeted. Extract data progressively from each response
       };
 
       const aiResponse = cleanAndParseJSON(response.content);
-      
+
       if (aiResponse) {
+        // Validate that we have a message field with actual content
+        if (aiResponse.message && typeof aiResponse.message === 'string' && aiResponse.message.trim().length > 0) {
+          aiMessage = aiResponse.message;
+        } else {
+          // Fallback: If JSON parsed but message field is missing/empty
+          console.warn('[log-chat] Parsed JSON but message field missing or empty');
+          aiMessage = "I'm processing your work entry. Could you provide a bit more detail?";
+        }
+
+        // Extract other fields
         if (aiResponse.extractedData) {
+          // Extract and validate category
+          const rawCategory = typeof aiResponse.extractedData.category === 'string'
+            ? aiResponse.extractedData.category
+            : 'general';
+          const validatedCategory = validateCategory(rawCategory, employmentStatus as any);
+
           extractedData = {
             skills: Array.isArray(aiResponse.extractedData.skills) ? aiResponse.extractedData.skills : [],
             achievements: Array.isArray(aiResponse.extractedData.achievements) ? aiResponse.extractedData.achievements : [],
             metrics: typeof aiResponse.extractedData.metrics === 'object' ? aiResponse.extractedData.metrics : {},
-            category: typeof aiResponse.extractedData.category === 'string' ? aiResponse.extractedData.category : 'general',
+            category: validatedCategory,
           };
         }
-        // Use the message field if present
-        if (aiResponse.message) {
-          aiMessage = aiResponse.message;
+      } else {
+        // If parsing returned null/undefined
+        console.warn('[log-chat] JSON parsing returned null');
+        aiMessage = response.content; // Use raw content only if it's plain text (no JSON)
+
+        // Detect if raw content looks like JSON - if so, use fallback
+        if (response.content.trim().startsWith('{') || response.content.trim().startsWith('[')) {
+          aiMessage = "I'm ready to help you log your work. What did you accomplish today?";
         }
       }
     } catch (e) {
-      // If not valid JSON, treat entire response as message (existing behavior)
-      console.log('AI response not JSON/parseable, using as plain message');
+      // If parsing completely fails, check if content looks like JSON
+      console.log('[log-chat] AI response not JSON/parseable');
+
+      if (response.content.trim().startsWith('{') || response.content.trim().startsWith('[')) {
+        console.warn('[log-chat] Response appears to be unparsed JSON - using fallback message');
+        aiMessage = "I'm ready to help you log your work. What did you accomplish today?";
+      } else {
+        // It's actually plain text, use it as-is
+        aiMessage = response.content;
+      }
     }
 
     // Apply post-processing redaction to AI response
     const safeMessage = redactPII(aiMessage);
+
+    // FINAL VALIDATION: Ensure we're not sending JSON to the user
+    if (safeMessage.trim().startsWith('{') || safeMessage.trim().startsWith('[')) {
+      console.error('[log-chat] JSON detected in final message! Using fallback.');
+      return c.json({
+        message: "I'm ready to help you log your work. What did you accomplish today?",
+        extractedData,
+        shouldSummarize,
+      });
+    }
 
     return c.json({
       message: safeMessage,

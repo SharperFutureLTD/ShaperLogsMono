@@ -243,7 +243,7 @@ export type Database = {
           achievements: string[] | null
           category: string | null
           created_at: string
-          encrypted_original: string
+          encrypted_original: string | null
           id: string
           metrics: Json | null
           redacted_summary: string
@@ -256,7 +256,7 @@ export type Database = {
           achievements?: string[] | null
           category?: string | null
           created_at?: string
-          encrypted_original: string
+          encrypted_original?: string | null
           id?: string
           metrics?: Json | null
           redacted_summary: string

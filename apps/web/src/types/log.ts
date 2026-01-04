@@ -17,7 +17,7 @@ export interface WorkEntry {
   id: string;
   user_id: string;
   redacted_summary: string;
-  encrypted_original: string;
+  encrypted_original?: string;
   skills: string[];
   achievements: string[];
   metrics: Record<string, unknown>;

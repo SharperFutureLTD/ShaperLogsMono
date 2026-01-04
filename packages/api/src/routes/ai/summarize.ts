@@ -4,6 +4,9 @@ import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { AIProviderFactory } from '../../ai/factory';
 import { getRedactionRulesForContext } from '../../ai/prompts/redaction-rules';
 import { redactJSON, detectUnredactedPII } from '../../utils/redaction';
+import { getCategoriesForUser } from '../../constants/categories';
+import { validateCategory } from '../../utils/category-validator';
+import { createUserClient } from '../../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
@@ -78,6 +81,19 @@ const summarizeRoute = createRoute({
 app.openapi(summarizeRoute, async (c) => {
   try {
     const { conversation, extractedData, industry, targets, employmentStatus: _employmentStatus } = c.req.valid('json');
+    const user = c.get('user');
+
+    // Fetch user's employment status for category options
+    const supabase = createUserClient(c);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('employment_status')
+      .eq('id', user.id)
+      .single();
+
+    const employmentStatus = profile?.employment_status || _employmentStatus || 'professional';
+    const categoryList = getCategoriesForUser(employmentStatus as any);
+    const categoryOptions = categoryList.join(', ');
 
     // Build conversation context
     const conversationText = conversation
@@ -98,7 +114,10 @@ Guidelines:
 3. Extract specific skills that were used or developed
 4. Identify key achievements with measurable impact (keep counts, redact amounts)
 5. Note any relevant metrics or KPIs (keep metric names and counts, redact sensitive values)
-6. Categorize the work appropriately for ${industry}
+6. Categorize the work using ONLY ONE of these categories: ${categoryOptions}
+   - Choose the SINGLE best match from this exact list
+   - Do NOT create new categories or combine categories
+   - Use "General" if uncertain
 ${targets?.length ? `7. Evaluate if this work contributes to any of the following targets.
 
 CRITICAL TARGET LINKING RULES:
@@ -246,13 +265,17 @@ CRITICAL TARGET LINKING RULES (FAILURE = DATA CORRUPTION):
       );
     }
 
+    // Validate category against predefined list
+    const rawCategory = parsedResponse.category || extractedData?.category || 'General';
+    const validatedCategory = validateCategory(rawCategory, employmentStatus as any);
+
     // Build final response
     const finalResponse = {
       redactedSummary: parsedResponse.summary || response.content,
       skills: parsedResponse.skills || [],
       achievements: parsedResponse.achievements || [],
       metrics: parsedResponse.metrics || {},
-      category: parsedResponse.category,
+      category: validatedCategory,
       targetMappings: validTargetMappings,
     };
 

@@ -107,7 +107,7 @@ app.openapi(listRoute, async (c) => {
   // Get paginated data
   const { data, error } = await supabase
     .from('work_entries')
-    .select('id, user_id, redacted_summary, skills, achievements, metrics, category, target_ids, created_at, updated_at')
+    .select('id, user_id, redacted_summary, encrypted_original, skills, achievements, metrics, category, target_ids, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .range(from, to);

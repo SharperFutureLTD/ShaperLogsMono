@@ -19,7 +19,7 @@ async function deriveKey(userId: string, salt: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt.buffer as ArrayBuffer,
+      salt: salt,
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -65,25 +65,45 @@ export async function encrypt(plaintext: string, userId: string): Promise<string
   return btoa(String.fromCharCode(...combined));
 }
 
-// Decrypt ciphertext
+// Decrypt ciphertext (legacy format: IV + ciphertext)
 export async function decrypt(ciphertext: string, userId: string): Promise<string> {
+  console.log('[decrypt] Using legacy format');
+
+  // Get salt from localStorage (legacy approach)
   const salt = getSalt(userId);
+
+  // Derive key with localStorage salt
   const key = await deriveKey(userId, salt);
-  
-  // Decode base64 and separate IV from ciphertext
+
+  // Decode base64 - legacy format: IV (12 bytes) + ciphertext
   const combined = new Uint8Array(
     atob(ciphertext).split('').map(c => c.charCodeAt(0))
   );
-  
-  const iv = combined.slice(0, IV_LENGTH);
-  const encrypted = combined.slice(IV_LENGTH);
-  
-  const decrypted = await crypto.subtle.decrypt(
-    { name: ALGORITHM, iv },
-    key,
-    encrypted
-  );
 
-  const decoder = new TextDecoder();
-  return decoder.decode(decrypted);
+  console.log('[decrypt] Combined length:', combined.length);
+  console.log('[decrypt] IV length:', IV_LENGTH);
+
+  // Extract IV and ciphertext (simple split)
+  const iv = combined.slice(0, IV_LENGTH);           // First 12 bytes = IV
+  const encrypted = combined.slice(IV_LENGTH);       // Rest = ciphertext (with authTag built-in)
+
+  console.log('[decrypt] IV:', iv.length, 'bytes');
+  console.log('[decrypt] Encrypted:', encrypted.length, 'bytes');
+
+  try {
+    // Decrypt using Web Crypto API (authTag is part of encrypted data automatically)
+    const decrypted = await crypto.subtle.decrypt(
+      { name: ALGORITHM, iv },           // No tagLength parameter
+      key,
+      encrypted                          // Ciphertext with built-in authTag
+    );
+
+    const decoder = new TextDecoder();
+    const result = decoder.decode(decrypted);
+    console.log('[decrypt] Success!', result.length, 'chars');
+    return result;
+  } catch (error) {
+    console.error('[decrypt] Failed:', error);
+    throw error;
+  }
 }
