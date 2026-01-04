@@ -8,6 +8,7 @@ import { useTargetDocuments } from "@/hooks/useTargetDocuments";
 import { useTargets } from "@/hooks/useTargets";
 import { toast } from "sonner";
 import type { ExtractedTarget } from "@/types/targets";
+import { ExtractionLoadingOverlay } from "./ExtractionLoadingOverlay";
 
 // File type validation configuration
 const FILE_TYPES = {
@@ -159,8 +160,15 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
     );
   }
 
+  const isProcessing = isUploading || isParsing;
+
   return (
-    <div className="border border-dashed border-border rounded-lg p-6 text-center">
+    <div className="relative border border-dashed border-border rounded-lg p-6 text-center">
+      {/* Loading overlay */}
+      {isProcessing && (
+        <ExtractionLoadingOverlay isUploading={isUploading} isExtracting={isParsing} />
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -211,6 +219,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
               variant="ghost"
               size="sm"
               onClick={() => setSelectedFile(null)}
+              disabled={isProcessing}
               className="font-mono text-xs"
             >
               [CANCEL]
@@ -218,17 +227,10 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
             <Button
               size="sm"
               onClick={handleUpload}
-              disabled={isUploading || isParsing}
+              disabled={isProcessing}
               className="font-mono text-xs"
             >
-              {isUploading || isParsing ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  {isUploading ? 'Uploading...' : 'Extracting...'}
-                </>
-              ) : (
-                '[EXTRACT TARGETS]'
-              )}
+              [EXTRACT TARGETS]
             </Button>
           </div>
         </div>
