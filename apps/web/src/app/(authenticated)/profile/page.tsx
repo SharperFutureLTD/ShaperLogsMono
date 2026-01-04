@@ -92,7 +92,7 @@ export default function ProfilePage() {
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="font-mono text-muted-foreground">loading...</div>
+        <div className="font-mono text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function ProfilePage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="font-mono text-sm font-medium">profile</h1>
+          <h1 className="font-mono text-sm font-medium">Profile</h1>
         </div>
       </header>
 
@@ -118,7 +118,7 @@ export default function ProfilePage() {
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* User Info */}
         <section className="space-y-3">
-          <h2 className="font-mono text-xs text-muted-foreground">account</h2>
+          <h2 className="font-mono text-xs text-muted-foreground">Account</h2>
           <div className="flex items-center gap-2">
             <p className="font-mono text-sm text-foreground">{user?.email}</p>
             {hasSubscription && isActive && (
@@ -140,7 +140,7 @@ export default function ProfilePage() {
 
         {/* Current Status Display */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">current situation</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">Current Situation</h2>
           <p className="font-mono text-sm text-foreground">
             {getStatusLabel(profile?.employment_status || null)}
           </p>
@@ -148,7 +148,7 @@ export default function ProfilePage() {
 
         {/* Status Selector */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-4">change situation</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-4">Change Situation</h2>
           <StatusSelector
             selectedStatus={selectedStatus}
             onSelect={setSelectedStatus}
@@ -160,7 +160,7 @@ export default function ProfilePage() {
         {showStudyField && (
           <section>
             <h2 className="font-mono text-xs text-muted-foreground mb-2">
-              {selectedStatus === 'apprentice' ? 'studying towards' : 'field of study'}
+              {selectedStatus === 'apprentice' ? 'Studying Towards' : 'Field of Study'}
             </h2>
             <p className="font-mono text-sm text-foreground mb-4">
               Current: {getStudyFieldLabel(profile?.study_field || null)}
@@ -177,7 +177,7 @@ export default function ProfilePage() {
         {showIndustry && (
           <section>
             <h2 className="font-mono text-xs text-muted-foreground mb-2">
-              {selectedStatus === 'job_seeking' ? 'target industry' : 'industry'}
+              {selectedStatus === 'job_seeking' ? 'Target Industry' : 'Industry'}
             </h2>
             <p className="font-mono text-sm text-foreground mb-4">
               Current: {getIndustryLabel(profile?.industry || null)}
@@ -204,11 +204,11 @@ export default function ProfilePage() {
               className="font-mono gap-2"
             >
               {isSaving ? (
-                'saving...'
+                'Saving...'
               ) : (
                 <>
                   <Check className="h-4 w-4" />
-                  save changes
+                  Save Changes
                 </>
               )}
             </Button>

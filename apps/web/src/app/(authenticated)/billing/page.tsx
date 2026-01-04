@@ -201,7 +201,7 @@ export default function BillingPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="font-mono text-sm font-medium">billing</h1>
+          <h1 className="font-mono text-sm font-medium">Billing</h1>
         </div>
       </header>
 
@@ -210,7 +210,7 @@ export default function BillingPage() {
         {/* Intro */}
         <section>
           <h2 className="font-mono text-xs text-muted-foreground mb-2">
-            subscription
+            Subscription
           </h2>
           <p className="font-mono text-sm text-foreground">
             Manage your subscription and billing details.
@@ -221,7 +221,7 @@ export default function BillingPage() {
         {hasSubscription && (
           <section>
             <h2 className="font-mono text-xs text-muted-foreground mb-2">
-              current subscription
+              Current Subscription
             </h2>
             <Card>
               <CardHeader>
@@ -277,7 +277,7 @@ export default function BillingPage() {
         {!hasSubscription && (
           <section>
             <h2 className="font-mono text-xs text-muted-foreground mb-2">
-              available plans
+              Available Plans
             </h2>
             <Card>
               <CardHeader>
@@ -333,7 +333,7 @@ export default function BillingPage() {
           billingHistory.invoices.length > 0 && (
             <section>
               <h2 className="font-mono text-xs text-muted-foreground mb-2">
-                billing history
+                Billing History
               </h2>
               <Card>
                 <CardHeader>

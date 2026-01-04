@@ -32,7 +32,7 @@ export default function SettingsPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="font-mono text-sm font-medium">settings</h1>
+          <h1 className="font-mono text-sm font-medium">Settings</h1>
         </div>
       </header>
 
@@ -40,14 +40,14 @@ export default function SettingsPage() {
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* Account Settings */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">account</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">Account</h2>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm font-mono text-muted-foreground block mb-1">email</Label>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">Email</Label>
               <p className="font-mono text-sm">{user.email}</p>
             </div>
             <div>
-              <Label className="text-sm font-mono text-muted-foreground block mb-1">user id</Label>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">User ID</Label>
               <p className="font-mono text-xs text-muted-foreground">{user.id}</p>
             </div>
           </div>
@@ -55,7 +55,7 @@ export default function SettingsPage() {
 
         {/* Notifications */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-4">notifications</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-4">Notifications</h2>
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -82,10 +82,10 @@ export default function SettingsPage() {
 
         {/* Privacy & Security */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">privacy & security</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">Privacy & Security</h2>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm font-mono text-muted-foreground block mb-1">encryption</Label>
+              <Label className="text-sm font-mono text-muted-foreground block mb-1">Encryption</Label>
               <p className="text-sm">All your data is encrypted client-side using AES-256-GCM.</p>
             </div>
             <Button variant="outline" className="font-mono w-full sm:w-auto h-9">
@@ -96,7 +96,7 @@ export default function SettingsPage() {
 
         {/* Preferences */}
         <section>
-          <h2 className="font-mono text-xs text-muted-foreground mb-2">preferences</h2>
+          <h2 className="font-mono text-xs text-muted-foreground mb-2">Preferences</h2>
           <div>
             <Button
               variant="outline"

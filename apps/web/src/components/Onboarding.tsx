@@ -200,53 +200,53 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
   const getStepConfig = () => {
     if (step === 'status') {
       return {
-        title: "what's your situation?",
-        subtitle: 'this helps us tailor the experience to your needs',
+        title: "What's Your Situation?",
+        subtitle: 'This helps us tailor the experience to your needs',
       };
     }
 
     if (step === 'industry') {
       if (selectedStatus === 'apprentice') {
         return {
-          title: 'what industry are you in?',
-          subtitle: "your employer's field helps us understand your context",
+          title: 'What Industry Are You In?',
+          subtitle: "Your employer's field helps us understand your context",
         };
       }
       if (selectedStatus === 'job_seeking') {
         return {
-          title: 'what field are you targeting?',
-          subtitle: 'this helps us tailor skills and content to your goals',
+          title: 'What Field Are You Targeting?',
+          subtitle: 'This helps us tailor skills and content to your goals',
         };
       }
       return {
-        title: "what's your field?",
-        subtitle: 'this helps us tailor skills and achievements to your career',
+        title: "What's Your Field?",
+        subtitle: 'This helps us tailor skills and achievements to your career',
       };
     }
 
     if (step === 'field') {
       if (selectedStatus === 'apprentice') {
         return {
-          title: 'what are you studying towards?',
-          subtitle: 'your qualification helps us track your learning',
+          title: 'What Are You Studying Towards?',
+          subtitle: 'Your qualification helps us track your learning',
         };
       }
       return {
-        title: 'what are you studying?',
-        subtitle: 'this helps us tailor skills and content to your field',
+        title: 'What Are You Studying?',
+        subtitle: 'This helps us tailor skills and content to your field',
       };
     }
 
     if (step === 'history') {
       return {
-        title: 'career history',
-        subtitle: 'add your previous roles to give the AI more context (optional)',
+        title: 'Career History',
+        subtitle: 'Add your previous roles to give the AI more context (optional)',
       };
     }
 
     return {
-      title: "let's get started",
-      subtitle: 'tell us about yourself',
+      title: "Let's Get Started",
+      subtitle: 'Tell us about yourself',
     };
   };
 
@@ -265,7 +265,7 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
             className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-sm font-mono mb-4 transition-colors disabled:opacity-50"
           >
             <ArrowLeft className="h-4 w-4" />
-            back
+            Back
           </button>
         )}
 
@@ -331,11 +331,11 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
               disabled={isSubmitting}
               className="text-muted-foreground hover:text-foreground text-xs font-mono transition-colors disabled:opacity-50"
             >
-              skip for now
+              Skip for Now
             </button>
           </div>
         )}
-        
+
         {step === 'history' && (
           <div className="text-center mt-4">
             <button
@@ -343,7 +343,7 @@ export const Onboarding = ({ onComplete, isSubmitting = false }: OnboardingProps
               disabled={isSubmitting}
               className="text-muted-foreground hover:text-foreground text-xs font-mono transition-colors disabled:opacity-50"
             >
-              skip this step
+              Skip This Step
             </button>
           </div>
         )}

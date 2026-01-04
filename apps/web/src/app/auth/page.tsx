@@ -223,8 +223,8 @@ export default function Auth() {
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               {isLogin
-                ? "need an account? signup"
-                : "already have an account? login"}
+                ? "Need an account? Sign up"
+                : "Already have an account? Log in"}
             </button>
           </div>
         </div>

@@ -89,7 +89,7 @@ export function CareerHistorySection() {
       <ResumeLoadingOverlay isProcessing={isUploading} />
 
       <div className="flex items-center justify-between">
-        <h2 className="font-mono text-sm text-muted-foreground">career history</h2>
+        <h2 className="font-mono text-sm text-muted-foreground">Career History</h2>
         <div className="flex gap-2">
           <div className="relative">
             <input
@@ -125,7 +125,7 @@ export function CareerHistorySection() {
 
       <div className="space-y-4">
         {isLoading ? (
-          <div className="text-center py-8 font-mono text-xs text-muted-foreground">loading history...</div>
+          <div className="text-center py-8 font-mono text-xs text-muted-foreground">Loading history...</div>
         ) : history?.length === 0 && !isAdding ? (
           <div className="text-center py-8 border rounded-md bg-muted/50">
             <Briefcase className="h-8 w-8 mx-auto text-muted-foreground mb-2" />

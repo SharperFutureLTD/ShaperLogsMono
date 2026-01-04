@@ -195,7 +195,7 @@ export function TargetUpload({ onComplete }: TargetUploadProps) {
         <>
           <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="font-mono text-sm text-foreground mb-2">
-            Upload your targets document
+            Upload Your Targets Document
           </p>
           <p className="font-mono text-xs text-muted-foreground mb-4">
             PDF, Word, Excel, CSV, or Text files supported

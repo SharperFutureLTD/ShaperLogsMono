@@ -49,7 +49,7 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
-            <span className="font-mono text-sm text-muted-foreground">menu</span>
+            <span className="font-mono text-sm text-muted-foreground">Menu</span>
             <Button
               variant="ghost"
               size="icon"
@@ -62,7 +62,7 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
 
           {/* User Info */}
           <div className="border-b border-border p-4">
-            <p className="font-mono text-xs text-muted-foreground">logged in as</p>
+            <p className="font-mono text-xs text-muted-foreground">Logged in as</p>
             <p className="mt-1 font-mono text-sm text-foreground truncate">
               {user?.email}
             </p>
@@ -75,21 +75,21 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
               className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-mono">profile</span>
+              <span className="font-mono">Profile</span>
             </button>
             <button
               onClick={handleSettingsClick}
               className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="font-mono">settings</span>
+              <span className="font-mono">Settings</span>
             </button>
             <button
               onClick={handleBillingClick}
               className="flex w-full items-center gap-3 rounded-md px-3 py-3 md:py-2 text-sm transition-colors hover:bg-accent"
             >
               <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span className="font-mono">billing</span>
+              <span className="font-mono">Billing</span>
             </button>
           </nav>
 
@@ -100,7 +100,7 @@ export function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
               className="w-full font-mono text-sm"
               onClick={handleSignOut}
             >
-              [logout]
+              [Logout]
             </Button>
           </div>
         </div>
