@@ -152,7 +152,7 @@ export function LogConversationBox({
           {/* Messages */}
           <div
             ref={messagesRef}
-            className="space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto px-4 pb-3"
+            className="space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto px-4 pb-3 custom-scrollbar"
           >
             {messages.map((message, index) => {
               const isLastUserMessage = message.role === "user" && index === messages.length - 2; // Assuming assistant replied last
@@ -210,7 +210,7 @@ export function LogConversationBox({
               <div className="flex justify-start">
                 <div className="bg-muted text-foreground rounded-md px-3 py-2 font-mono text-sm">
                   <span className="opacity-60 mr-2">$</span>
-                  <span className="cursor-blink">_</span>
+                  <span className="text-muted-foreground animate-pulse">typing</span>
                 </div>
               </div>
             )}

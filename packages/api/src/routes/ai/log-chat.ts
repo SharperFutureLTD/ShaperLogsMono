@@ -9,6 +9,27 @@ import { createUserClient } from '../../db/client';
 
 const app = new OpenAPIHono<AuthContext>();
 
+// Helper to sanitize AI message - removes any markdown code blocks or embedded JSON
+const sanitizeMessage = (text: string): string => {
+  // Remove markdown code blocks (```json...``` or ```...```)
+  let cleaned = text.replace(/```[\s\S]*?```/g, '').trim();
+
+  // Remove any JSON-like objects that contain "message" key
+  cleaned = cleaned.replace(/\{[\s\S]*?"message"[\s\S]*?\}/g, '').trim();
+
+  return cleaned;
+};
+
+// Helper to check if text contains technical formatting that shouldn't be shown to users
+const containsTechnicalFormatting = (text: string): boolean => {
+  return (
+    text.includes('```') ||
+    text.includes('{"') ||
+    text.includes('{ "') ||
+    /\{\s*"message"\s*:/.test(text)
+  );
+};
+
 // Zod schemas
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -173,13 +194,13 @@ CRITICAL RULES - NEVER VIOLATE:
 5. Do NOT ask about: future features, product roadmaps, long-term plans, or hypotheticals
 
 Current exchange: ${exchangeCount + 1} of ${maxExchanges}
-${shouldSummarize ? '\nThis is the final exchange. Acknowledge their response and let them know you\'re ready to create a summary.' : ''}
+${shouldSummarize ? '\nThis is the FINAL exchange. Send a brief, friendly acknowledgment and let them know you will create their summary.' : ''}
 
 RESPONSE FORMAT:
-Return JSON with:
+Return ONLY a valid JSON object. Do NOT include any text before or after the JSON.
 {
-  "message": "Your conversational response/question (PLAIN TEXT ONLY - NO JSON FORMATTING IN THIS FIELD)",
-  "shouldSummarize": boolean (true when you have enough info),
+  "message": "Your conversational response here",
+  "shouldSummarize": true or false,
   "extractedData": {
     "skills": ["skill1", "skill2"],
     "achievements": ["achievement1"],
@@ -188,13 +209,21 @@ Return JSON with:
   }
 }
 
-CRITICAL CATEGORY RULES:
-- Choose ONLY ONE category from the exact list above: ${categories}
-- Do NOT create new categories or combine categories with slashes
-- Match the work to the closest single category
-- Use "General" if unsure
+CRITICAL RULES FOR THE "message" FIELD:
+- Write ONLY plain, conversational text as if speaking to a human
+- NEVER include markdown formatting (no backticks, no code blocks, no asterisks)
+- NEVER include JSON syntax, curly braces, or structured data
+- NEVER repeat the response structure inside the message
+- Keep it natural, friendly, and brief
 
-CRITICAL: The "message" field must contain ONLY plain, conversational text. Do NOT include JSON formatting, code blocks, or structured data in the message field itself.
+GOOD: "That sounds like a productive day! What specific metrics did you achieve?"
+BAD: "Great work! Here is the data: \`\`\`json { ... }"
+
+${shouldSummarize ? 'FINAL MESSAGE: Your message should be a brief acknowledgment like: "Thanks for sharing your work today! I have everything I need to create your summary."' : ''}
+
+CATEGORY RULES:
+- Choose ONLY ONE category from: ${categories}
+- Use "General" if unsure
 
 Keep questions short and targeted. Extract data progressively from each response.`;
 
@@ -269,37 +298,45 @@ Keep questions short and targeted. Extract data progressively from each response
       } else {
         // If parsing returned null/undefined
         console.warn('[log-chat] JSON parsing returned null');
-        aiMessage = response.content; // Use raw content only if it's plain text (no JSON)
 
-        // Detect if raw content looks like JSON - if so, use fallback
-        if (response.content.trim().startsWith('{') || response.content.trim().startsWith('[')) {
+        // Sanitize and check for technical formatting
+        const sanitized = sanitizeMessage(response.content);
+        if (sanitized.length > 5 && !containsTechnicalFormatting(sanitized)) {
+          aiMessage = sanitized;
+        } else {
           aiMessage = "I'm ready to help you log your work. What did you accomplish today?";
         }
       }
     } catch (e) {
-      // If parsing completely fails, check if content looks like JSON
+      // If parsing completely fails, sanitize and check content
       console.log('[log-chat] AI response not JSON/parseable');
 
-      if (response.content.trim().startsWith('{') || response.content.trim().startsWith('[')) {
-        console.warn('[log-chat] Response appears to be unparsed JSON - using fallback message');
-        aiMessage = "I'm ready to help you log your work. What did you accomplish today?";
+      const sanitized = sanitizeMessage(response.content);
+      if (sanitized.length > 5 && !containsTechnicalFormatting(sanitized)) {
+        aiMessage = sanitized;
       } else {
-        // It's actually plain text, use it as-is
-        aiMessage = response.content;
+        console.warn('[log-chat] Response contains technical formatting - using fallback message');
+        aiMessage = "I'm ready to help you log your work. What did you accomplish today?";
       }
     }
 
     // Apply post-processing redaction to AI response
-    const safeMessage = redactPII(aiMessage);
+    let safeMessage = redactPII(aiMessage);
 
-    // FINAL VALIDATION: Ensure we're not sending JSON to the user
-    if (safeMessage.trim().startsWith('{') || safeMessage.trim().startsWith('[')) {
-      console.error('[log-chat] JSON detected in final message! Using fallback.');
-      return c.json({
-        message: "I'm ready to help you log your work. What did you accomplish today?",
-        extractedData,
-        shouldSummarize,
-      });
+    // FINAL VALIDATION: Ensure we're not sending technical formatting to the user
+    if (containsTechnicalFormatting(safeMessage)) {
+      console.error('[log-chat] Technical formatting detected in final message! Attempting to sanitize.');
+      const sanitized = sanitizeMessage(safeMessage);
+      if (sanitized.length > 5 && !containsTechnicalFormatting(sanitized)) {
+        safeMessage = sanitized;
+      } else {
+        console.error('[log-chat] Sanitization failed - using fallback message');
+        return c.json({
+          message: "I'm ready to help you log your work. What did you accomplish today?",
+          extractedData,
+          shouldSummarize,
+        });
+      }
     }
 
     return c.json({
