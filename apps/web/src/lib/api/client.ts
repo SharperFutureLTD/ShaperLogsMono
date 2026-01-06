@@ -53,6 +53,7 @@ class APIClient {
 
   /**
    * Make authenticated request to REST API
+   * Includes timeout handling to prevent mobile browsers from silently killing requests
    */
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = await this.getAuthToken();
@@ -60,6 +61,13 @@ class APIClient {
     if (!token) {
       throw new APIClientError('No authentication token', 401, 'UNAUTHORIZED');
     }
+
+    // Add timeout - longer for AI endpoints (60s), shorter for others (30s)
+    const isAIEndpoint = endpoint.startsWith('/api/ai/');
+    const timeout = isAIEndpoint ? 60000 : 30000;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     const headers = new Headers(options.headers);
     headers.set('Authorization', `Bearer ${token}`);
@@ -69,26 +77,38 @@ class APIClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const errorData: APIError = await response.json().catch(() => ({
-        error: 'Unknown Error',
-        message: response.statusText,
-        status: response.status,
-      }));
+      clearTimeout(timeoutId);
 
-      throw new APIClientError(
-        errorData.message || errorData.error,
-        errorData.status,
-        errorData.error
-      );
+      if (!response.ok) {
+        const errorData: APIError = await response.json().catch(() => ({
+          error: 'Unknown Error',
+          message: response.statusText,
+          status: response.status,
+        }));
+
+        throw new APIClientError(
+          errorData.message || errorData.error,
+          errorData.status,
+          errorData.error
+        );
+      }
+
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new APIClientError('Request timed out. Please try again.', 408, 'TIMEOUT');
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   // ========================================
