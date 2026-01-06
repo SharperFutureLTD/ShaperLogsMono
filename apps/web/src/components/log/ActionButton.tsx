@@ -16,25 +16,25 @@ interface ActionButtonProps {
 // Waveform animation component
 function WaveformAnimation() {
   return (
-    <div className="flex items-center gap-0.5 h-4">
+    <div className="flex items-center gap-0.5 h-5">
       <div
-        className="w-0.5 h-2 bg-destructive rounded-full animate-wave"
+        className="w-1 h-2.5 bg-destructive rounded-full animate-wave"
         style={{ animationDelay: '0ms' }}
       />
       <div
-        className="w-0.5 h-3 bg-destructive rounded-full animate-wave"
+        className="w-1 h-3.5 bg-destructive rounded-full animate-wave"
         style={{ animationDelay: '75ms' }}
       />
       <div
-        className="w-0.5 h-4 bg-destructive rounded-full animate-wave"
+        className="w-1 h-5 bg-destructive rounded-full animate-wave"
         style={{ animationDelay: '150ms' }}
       />
       <div
-        className="w-0.5 h-3 bg-destructive rounded-full animate-wave"
+        className="w-1 h-3.5 bg-destructive rounded-full animate-wave"
         style={{ animationDelay: '225ms' }}
       />
       <div
-        className="w-0.5 h-2 bg-destructive rounded-full animate-wave"
+        className="w-1 h-2.5 bg-destructive rounded-full animate-wave"
         style={{ animationDelay: '300ms' }}
       />
     </div>
@@ -78,13 +78,13 @@ export function ActionButton({
       }
     >
       {mode === 'transcribing' ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-5 w-5 animate-spin" />
       ) : mode === 'recording' ? (
         <WaveformAnimation />
       ) : mode === 'send' ? (
-        <ArrowUp className="h-4 w-4" />
+        <ArrowUp className="h-5 w-5" />
       ) : (
-        <Mic className="h-4 w-4" />
+        <Mic className="h-5 w-5" />
       )}
     </Button>
   );
