@@ -43,10 +43,10 @@ export function GenerateConversationBox({
   onContextDocumentChange,
 }: GenerateConversationBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [actionButtonMode, setActionButtonMode] = useState<ActionButtonMode>('mic');
-  const [isFocused, setIsFocused] = useState(false);
 
   const {
     isRecording,
@@ -67,6 +67,14 @@ export function GenerateConversationBox({
       setActionButtonMode('mic');
     }
   }, [isRecording, isTranscribing, prompt]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [prompt]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -148,11 +156,10 @@ export function GenerateConversationBox({
       <div className="p-3">
         <div className="relative flex-1">
           <Textarea
+            ref={textareaRef}
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
             placeholder={isRecording ? "recording" : "Describe what you'd like to generate..."}
             disabled={isGenerating || isTranscribing}
             className={`min-h-[48px] max-h-[200px] resize-none pr-14 py-2 font-mono text-base md:text-sm leading-snug border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 ${
@@ -160,8 +167,8 @@ export function GenerateConversationBox({
             }`}
           />
 
-          {/* Blinking cursor when focused and empty */}
-          {isFocused && !prompt && !isRecording && (
+          {/* Blinking cursor when empty - indicates input is ready */}
+          {!prompt && !isRecording && (
             <span className="absolute left-3 top-3 font-mono text-sm text-foreground cursor-blink">
               _
             </span>
