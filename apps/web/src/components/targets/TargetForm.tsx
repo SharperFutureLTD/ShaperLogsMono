@@ -39,7 +39,8 @@ export function TargetForm({ onComplete }: TargetFormProps) {
       target_value: formData.target_value ? parseFloat(formData.target_value) : undefined,
       unit: formData.unit || undefined,
       currency_code: formData.unit === 'currency' ? formData.currency_code : undefined,
-      deadline: formData.deadline || undefined
+      // Convert date input (YYYY-MM-DD) to ISO datetime format for API
+      deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined
     };
 
     await createTarget(target);
