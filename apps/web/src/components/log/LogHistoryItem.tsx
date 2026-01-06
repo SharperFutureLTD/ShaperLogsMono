@@ -225,7 +225,7 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex flex-wrap justify-end gap-2 mt-4">
               <Button
                 variant="ghost"
                 size="sm"
@@ -235,8 +235,8 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                 }}
                 className="font-mono text-xs"
               >
-                <Download className="h-3 w-3 mr-1" />
-                [DOWNLOAD]
+                <Download className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">[DOWNLOAD]</span>
               </Button>
               {entry.encrypted_original && (
                 <Button
@@ -253,13 +253,13 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                   )}
                 >
                   {isDecrypting ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    <Loader2 className="h-3 w-3 sm:mr-1 animate-spin" />
                   ) : isPrivacyMode ? (
-                    <EyeOff className="h-3 w-3 mr-1" />
+                    <EyeOff className="h-3 w-3 sm:mr-1" />
                   ) : (
-                    <Eye className="h-3 w-3 mr-1" />
+                    <Eye className="h-3 w-3 sm:mr-1" />
                   )}
-                  {isPrivacyMode ? "[HIDE]" : "[REVEAL]"}
+                  <span className="hidden sm:inline">{isPrivacyMode ? "[HIDE]" : "[REVEAL]"}</span>
                 </Button>
               )}
               {onDelete && (
@@ -272,8 +272,8 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                   }}
                   className="font-mono text-xs text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  [DELETE]
+                  <Trash2 className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">[DELETE]</span>
                 </Button>
               )}
             </div>
