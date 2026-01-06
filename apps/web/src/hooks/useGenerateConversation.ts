@@ -25,7 +25,7 @@ export function useGenerateConversation() {
   const [state, setState] = useState<GenerateState>({
     isGenerating: false,
     generatedContent: null,
-    selectedType: 'custom',
+    selectedType: 'linkedin_post',
     prompt: '',
     contextDocument: null,
   });
@@ -126,7 +126,7 @@ export function useGenerateConversation() {
       setState({
         isGenerating: false,
         generatedContent: null,
-        selectedType: 'custom',
+        selectedType: 'linkedin_post',
         prompt: '',
         contextDocument: null,
       });
@@ -143,7 +143,7 @@ export function useGenerateConversation() {
     setState({
       isGenerating: false,
       generatedContent: null,
-      selectedType: 'custom',
+      selectedType: 'linkedin_post',
       prompt: '',
       contextDocument: null,
     });

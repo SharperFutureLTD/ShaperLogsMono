@@ -32,4 +32,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.generatedContent.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.generatedContent.all, 'detail', id] as const,
   },
+  savedPrompts: {
+    all: ['saved-prompts'] as const,
+    lists: () => [...queryKeys.savedPrompts.all, 'list'] as const,
+  },
 };

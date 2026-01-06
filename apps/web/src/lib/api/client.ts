@@ -304,6 +304,41 @@ class APIClient {
   }
 
   // ========================================
+  // Saved Prompts
+  // ========================================
+
+  async getSavedPrompts() {
+    return this.request<{ data: Array<{
+      id: string;
+      user_id: string;
+      name: string;
+      prompt_text: string;
+      created_at: string;
+      updated_at: string;
+    }> }>('/api/saved-prompts');
+  }
+
+  async createSavedPrompt(data: { name: string; prompt_text: string }) {
+    return this.request<{
+      id: string;
+      user_id: string;
+      name: string;
+      prompt_text: string;
+      created_at: string;
+      updated_at: string;
+    }>('/api/saved-prompts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSavedPrompt(id: string) {
+    return this.request<{ success: boolean }>(`/api/saved-prompts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================================
   // Work Entry Targets
   // ========================================
 

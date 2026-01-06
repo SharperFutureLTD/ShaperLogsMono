@@ -10,6 +10,7 @@ import workEntriesRoutes from '../routes/work-entries';
 import targetsRoutes from '../routes/targets';
 import profileRoutes from '../routes/profile';
 import generatedContentRoutes from '../routes/generated-content';
+import savedPromptsRoutes from '../routes/saved-prompts';
 import workEntryTargetsRoutes from '../routes/work-entry-targets';
 import aiGenerateRoutes from '../routes/ai/generate';
 import aiLogChatRoutes from '../routes/ai/log-chat';
@@ -93,6 +94,7 @@ app.route('/', workEntriesRoutes);
 app.route('/', targetsRoutes);
 app.route('/', profileRoutes);
 app.route('/', generatedContentRoutes);
+app.route('/', savedPromptsRoutes);
 app.route('/', workEntryTargetsRoutes);
 
 // Register AI routes
