@@ -294,10 +294,10 @@ export function LogConversationBox({
                     size="sm"
                     onClick={onSkipToSummary}
                     className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
-                    title="Skip to summary (fast-forward through remaining questions)"
+                    title="End the conversation and generate a summary"
                   >
                     <FastForward className="h-4 w-4 mr-2" />
-                    Skip to summary
+                    End conversation
                   </Button>
                 )}
               </div>
