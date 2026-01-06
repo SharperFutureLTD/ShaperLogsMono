@@ -134,17 +134,22 @@ export function SummaryReview({
             </span>
             {validTargetMappings.length > 0 ? (
               <div className="space-y-2">
-                {validTargetMappings.map((mapping, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs font-mono bg-primary/10 px-2 py-1.5 rounded">
-                    <Target className="h-3 w-3 text-primary flex-shrink-0" />
-                    <span className="text-foreground">{mapping.targetName}</span>
-                    {mapping.contributionValue && (
-                      <span className="text-primary font-bold ml-auto">
-                        +{mapping.contributionValue.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {validTargetMappings.map((mapping, i) => {
+                  // Use targetName from API response, or fall back to looking up from targets list
+                  const target = targets.find(t => t.id === mapping.targetId);
+                  const displayName = mapping.targetName || target?.name || 'Unknown Target';
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-xs font-mono bg-primary/10 px-2 py-1.5 rounded">
+                      <Target className="h-3 w-3 text-primary flex-shrink-0" />
+                      <span className="text-foreground">{displayName}</span>
+                      {mapping.contributionValue && (
+                        <span className="text-primary font-bold ml-auto">
+                          +{mapping.contributionValue.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-xs font-mono text-muted-foreground italic">

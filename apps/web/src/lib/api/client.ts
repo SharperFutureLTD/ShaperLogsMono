@@ -398,9 +398,10 @@ class APIClient {
       category: string;
       targetMappings?: Array<{
         targetId: string;
+        targetName?: string;
         contributionValue?: number;
         contributionNote?: string;
-        smartData?: {
+        smart?: {
           specific: string;
           measurable: string;
           achievable: string;

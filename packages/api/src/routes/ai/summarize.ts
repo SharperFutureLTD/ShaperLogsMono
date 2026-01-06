@@ -45,9 +45,10 @@ const SummarizeResponseSchema = z.object({
   category: z.string().optional(),
   targetMappings: z.array(z.object({
     targetId: z.string(),
+    targetName: z.string().optional(),
     contributionNote: z.string().optional(),
     contributionValue: z.number().min(0).max(100).optional().describe('Percentage contribution (0-100)'),
-    smartData: SmartDataSchema.optional(),
+    smart: SmartDataSchema.optional(),
   })),
 });
 
@@ -152,7 +153,7 @@ Return a JSON object with this structure:
     "targetId": "UUID from the list above",
     "contributionNote": "Brief explanation of contribution",
     "contributionValue": 75,
-    "smartData": {
+    "smart": {
       "specific": "What exactly was accomplished",
       "measurable": "Quantifiable results achieved",
       "achievable": "Challenges overcome",
@@ -265,6 +266,19 @@ CRITICAL TARGET LINKING RULES (FAILURE = DATA CORRUPTION):
       );
     }
 
+    // Create a map for O(1) target name lookup
+    const targetNameMap = new Map((targets || []).map((t: any) => [t.id, t.name]));
+
+    // Enrich valid mappings with target names and normalize smart field
+    const enrichedMappings = validTargetMappings.map((mapping: any) => ({
+      targetId: mapping.targetId,
+      targetName: targetNameMap.get(mapping.targetId) || 'Unknown Target',
+      contributionNote: mapping.contributionNote,
+      contributionValue: mapping.contributionValue,
+      // Support both 'smart' and 'smartData' from AI response for backwards compatibility
+      smart: mapping.smart || mapping.smartData,
+    }));
+
     // Validate category against predefined list
     const rawCategory = parsedResponse.category || extractedData?.category || 'General';
     const validatedCategory = validateCategory(rawCategory, employmentStatus as any);
@@ -276,7 +290,7 @@ CRITICAL TARGET LINKING RULES (FAILURE = DATA CORRUPTION):
       achievements: parsedResponse.achievements || [],
       metrics: parsedResponse.metrics || {},
       category: validatedCategory,
-      targetMappings: validTargetMappings,
+      targetMappings: enrichedMappings,
     };
 
     // Apply post-processing redaction as fallback layer
