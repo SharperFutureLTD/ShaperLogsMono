@@ -52,14 +52,16 @@ export function GenerateTypeSelector({
   const [newPromptName, setNewPromptName] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleSavePrompt = async () => {
+  const handleSavePrompt = () => {
     if (!newPromptName.trim() || !onSaveCurrentPrompt) return;
 
-    const success = await onSaveCurrentPrompt(newPromptName.trim());
-    if (success) {
-      setNewPromptName('');
-      setSaveDialogOpen(false);
-    }
+    // Close dialog immediately - optimistic update handles the UI
+    const name = newPromptName.trim();
+    setNewPromptName('');
+    setSaveDialogOpen(false);
+
+    // Fire and forget - errors are handled by the mutation's rollback
+    onSaveCurrentPrompt(name);
   };
 
   const handleDeletePrompt = async (e: React.MouseEvent, id: string) => {
