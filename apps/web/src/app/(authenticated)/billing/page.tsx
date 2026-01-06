@@ -250,13 +250,13 @@ export default function BillingPage() {
                     : "Your subscription is active. You have full access to all premium features."}
                 </p>
               </CardContent>
-              <CardFooter className="flex gap-4">
+              <CardFooter className="flex flex-col sm:flex-row gap-4">
                 {!cancelAtPeriodEnd && (
                   <Button
                     variant="destructive"
                     onClick={() => cancelSubscription()}
                     disabled={isCancelling}
-                    className="font-mono"
+                    className="w-full sm:w-auto font-mono"
                   >
                     {isCancelling ? "Cancelling..." : "Cancel Subscription"}
                   </Button>
@@ -264,7 +264,7 @@ export default function BillingPage() {
                 <Button
                   variant="outline"
                   onClick={handleManage}
-                  className="font-mono"
+                  className="w-full sm:w-auto font-mono"
                 >
                   Manage Billing
                 </Button>
@@ -345,20 +345,26 @@ export default function BillingPage() {
                     {billingHistory.invoices.map((invoice) => (
                       <div
                         key={invoice.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-md"
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border border-border rounded-md"
                       >
-                        <div>
-                          <p className="font-mono text-sm">
-                            {new Date(
-                              invoice.created * 1000
-                            ).toLocaleDateString()}
-                          </p>
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {invoice.status}
-                          </p>
+                        <div className="flex items-center justify-between sm:justify-start gap-4">
+                          <div>
+                            <p className="font-mono text-sm">
+                              {new Date(
+                                invoice.created * 1000
+                              ).toLocaleDateString()}
+                            </p>
+                            <p className="font-mono text-xs text-muted-foreground">
+                              {invoice.status}
+                            </p>
+                          </div>
+                          <span className="font-mono text-sm font-bold sm:hidden">
+                            {(invoice.amountPaid / 100).toFixed(2)}{" "}
+                            {invoice.currency.toUpperCase()}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="font-mono text-sm font-bold">
+                        <div className="flex items-center justify-between sm:justify-end gap-4">
+                          <span className="font-mono text-sm font-bold hidden sm:inline">
                             {(invoice.amountPaid / 100).toFixed(2)}{" "}
                             {invoice.currency.toUpperCase()}
                           </span>
@@ -385,7 +391,7 @@ export default function BillingPage() {
       </main>
 
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col p-0">
           <DialogHeader className="p-6 pb-4">
             <DialogTitle className="font-mono">
               Complete Subscription
