@@ -6,6 +6,10 @@ import Stripe from 'stripe';
 const app = new OpenAPIHono<AuthContext>();
 
 // Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('⚠️ STRIPE_SECRET_KEY is not set in environment variables');
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-12-15.clover',
 });
