@@ -13,7 +13,7 @@ export const formatTemplates = {
 
 [Reflection or takeaway, 1 sentence]
 
-NO hashtags unless user explicitly requests them.
+#SharperLogs #[relevant] #[relevant] #[relevant]
   `.trim(),
 
   // Resume: 4-6 bullet points, metric-focused

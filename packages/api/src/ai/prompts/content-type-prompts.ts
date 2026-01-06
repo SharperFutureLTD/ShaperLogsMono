@@ -21,7 +21,7 @@ export const contentTypeInstructions: Record<string, ContentTypeInstruction> = {
       "Include 1-2 specific metrics or outcomes",
       "End with a reflection or subtle takeaway",
       "Use line breaks between paragraphs for readability",
-      "Add 2-3 relevant, specific hashtags at the end (industry-specific, not generic)",
+      "Add 3-4 hashtags at the end: ALWAYS start with #SharperLogs, then add 3 industry-specific hashtags",
       "NO meta commentary like 'Here's a LinkedIn post...'"
     ],
     tone: "Conversational, authentic, like you're talking to a colleague over coffee",
@@ -31,7 +31,7 @@ export const contentTypeInstructions: Record<string, ContentTypeInstruction> = {
       "Overly long paragraphs (max 3 sentences each)",
       "Generic phrases (excited to announce, deeply engaged, highly productive)",
       "Bullet points with bold headers (too structured)",
-      "Too many hashtags (max 3, not 9+)",
+      "Too many hashtags (max 4, not 9+)",
       "Generic hashtags (#Success #Growth #Leadership #Innovation)",
       "Meta commentary or framing text"
     ],
