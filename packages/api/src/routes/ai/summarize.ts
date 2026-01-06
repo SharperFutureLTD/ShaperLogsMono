@@ -47,7 +47,7 @@ const SummarizeResponseSchema = z.object({
     targetId: z.string(),
     targetName: z.string().optional(),
     contributionNote: z.string().optional(),
-    contributionValue: z.number().min(0).max(100).optional().describe('Percentage contribution (0-100)'),
+    contributionValue: z.number().min(0).optional().describe('Contribution value in target unit (hours, currency, count, or percentage)'),
     smart: SmartDataSchema.optional(),
   })),
 });
@@ -119,17 +119,18 @@ Guidelines:
    - Choose the SINGLE best match from this exact list
    - Do NOT create new categories or combine categories
    - Use "General" if uncertain
-${targets?.length ? `7. Evaluate if this work contributes to any of the following targets.
+${targets?.length ? `7. Intelligently map this work to relevant targets from the list below.
 
-CRITICAL TARGET LINKING RULES:
-- ONLY link targets if the user EXPLICITLY mentioned them in the conversation
-- If the user did NOT mention ANY targets by name, return an EMPTY array for targetMappings
-- NEVER infer or assume which targets the work relates to
-- NEVER link targets just because they seem related - user MUST have mentioned them
-- When in doubt, DO NOT link - empty array is always safe
+TARGET LINKING GUIDELINES:
+- Link targets when the user's work CLEARLY contributes to them based on context
+- For NUMERIC targets (KPIs, Goals): Extract specific contribution values in the target's unit
+- For QUALITATIVE targets (KSBs): Link when the work provides evidence/experience (use 1 as value)
+- DO NOT force mappings - only link when there's a genuine connection
+- Use the target description to understand what qualifies as a contribution
+- contributionValue must match the target's unit (hours = actual hours, currency = actual amount, % = percentage)
 
 Available targets:
-${targets.map((t: any) => `   - ID: ${t.id}, Name: ${t.name}, Type: ${t.type}`).join('\n')}` : ''}
+${targets.map((t: any) => `   - ID: ${t.id}, Name: "${t.name}", Type: ${t.type}, Unit: ${t.unit || 'count'}, Target: ${t.target_value || 'N/A'}, Current: ${t.current_value || 0}, Description: ${t.description || 'N/A'}`).join('\n')}` : ''}
 
 For each RELEVANT target mapping, provide:
 - targetId: The UUID of the target from the list above
@@ -166,15 +167,16 @@ Return a JSON object with this structure:
 Be specific and quantifiable where possible. Focus on impact and outcomes.
 REMEMBER: Apply REDACTION to all sensitive information in the summary, achievements, and metrics.
 
-CRITICAL TARGET LINKING RULES (FAILURE = DATA CORRUPTION):
-1. ONLY link targets if the user has targets AND explicitly discussed their progress on those targets
-2. If the targets array is EMPTY, you MUST return an EMPTY targetMappings array - NO EXCEPTIONS
-3. If targets exist, you may ONLY map to target IDs provided in the list above - NEVER invent or use placeholder IDs
-4. NEVER assign contributionValue unless the user provided specific measurable numbers in the conversation
-5. Contribution must be a POSITIVE number (> 0) representing actual progress discussed by the user
-6. When in doubt, DO NOT link - empty targetMappings array is always the safe choice
-7. Returning invalid target IDs or placeholder values corrupts the user interface and destroys trust
-8. The user mentioning general work does NOT automatically mean it relates to any specific target`;
+TARGET MAPPING VALIDATION RULES:
+1. If targets array is EMPTY, return an EMPTY targetMappings array
+2. ONLY use target IDs from the list above - NEVER invent or guess IDs
+3. contributionValue must match the target's unit type:
+   - Hours: actual hours worked (e.g., 4 for "4 hours")
+   - Currency: actual amount (e.g., 500 for "£500")
+   - Percentage: percentage points (e.g., 10 for "10%")
+   - Count/other: actual count
+4. For qualitative targets (KSBs): use 1 as contributionValue to indicate evidence logged
+5. Include SMART breakdown when the user provided enough detail`;
 
     const userMessage = `Summarize this work conversation:\n\n${conversationText}`;
 

@@ -1,16 +1,25 @@
 'use client'
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, Pencil, Loader2, Target } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Pencil, Loader2, Target, X, Plus } from "lucide-react";
 import { useTargets } from "@/hooks/useTargets";
-import type { SummaryData } from "@/types/log";
+import type { SummaryData, TargetMapping } from "@/types/log";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SummaryReviewProps {
   summary: SummaryData;
   isLoading: boolean;
   onUpdate: (newSummary: string) => void;
+  onUpdateTargetMappings: (mappings: TargetMapping[]) => void;
   onAccept: () => void;
 }
 
@@ -18,10 +27,14 @@ export function SummaryReview({
   summary,
   isLoading,
   onUpdate,
+  onUpdateTargetMappings,
   onAccept
 }: SummaryReviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(summary.redactedSummary);
+  const [editingContributionId, setEditingContributionId] = useState<string | null>(null);
+  const [editingContributionValue, setEditingContributionValue] = useState<string>('');
+  const [showAddTarget, setShowAddTarget] = useState(false);
   const { targets } = useTargets();
 
   // Filter and validate target mappings before rendering
@@ -70,6 +83,61 @@ export function SummaryReview({
     onUpdate(editValue);
     setIsEditing(false);
   };
+
+  // Get available targets (those not already linked)
+  const availableTargets = useMemo(() => {
+    if (!targets) return [];
+    const linkedTargetIds = new Set(summary.targetMappings?.map(m => m.targetId) || []);
+    return targets.filter(t => t.status === 'active' && !linkedTargetIds.has(t.id));
+  }, [targets, summary.targetMappings]);
+
+  // Handler to unlink a target
+  const handleUnlinkTarget = useCallback((targetId: string) => {
+    const updatedMappings = (summary.targetMappings || []).filter(m => m.targetId !== targetId);
+    onUpdateTargetMappings(updatedMappings);
+  }, [summary.targetMappings, onUpdateTargetMappings]);
+
+  // Handler to start editing a contribution value
+  const handleStartEditContribution = useCallback((targetId: string, currentValue: number | undefined) => {
+    setEditingContributionId(targetId);
+    setEditingContributionValue(currentValue?.toString() || '');
+  }, []);
+
+  // Handler to save contribution value edit
+  const handleSaveContribution = useCallback(() => {
+    if (!editingContributionId) return;
+
+    const newValue = parseFloat(editingContributionValue);
+    if (isNaN(newValue) || newValue < 0) {
+      setEditingContributionId(null);
+      return;
+    }
+
+    const updatedMappings = (summary.targetMappings || []).map(m =>
+      m.targetId === editingContributionId
+        ? { ...m, contributionValue: newValue }
+        : m
+    );
+    onUpdateTargetMappings(updatedMappings);
+    setEditingContributionId(null);
+  }, [editingContributionId, editingContributionValue, summary.targetMappings, onUpdateTargetMappings]);
+
+  // Handler to add a new target
+  const handleAddTarget = useCallback((targetId: string) => {
+    const target = targets?.find(t => t.id === targetId);
+    if (!target) return;
+
+    const newMapping: TargetMapping = {
+      targetId: target.id,
+      targetName: target.name,
+      contributionValue: target.type === 'ksb' ? 1 : undefined, // Default 1 for KSBs
+      contributionNote: '',
+    };
+
+    const updatedMappings = [...(summary.targetMappings || []), newMapping];
+    onUpdateTargetMappings(updatedMappings);
+    setShowAddTarget(false);
+  }, [targets, summary.targetMappings, onUpdateTargetMappings]);
 
   // Highlight redacted placeholders
   const highlightRedactions = (text: string) => {
@@ -132,21 +200,60 @@ export function SummaryReview({
             <span className="font-mono text-xs text-muted-foreground mb-2 block">
               // linked targets
             </span>
-            {validTargetMappings.length > 0 ? (
+            {(summary.targetMappings && summary.targetMappings.length > 0) ? (
               <div className="space-y-2">
-                {validTargetMappings.map((mapping, i) => {
+                {summary.targetMappings.map((mapping, i) => {
                   // Use targetName from API response, or fall back to looking up from targets list
-                  const target = targets.find(t => t.id === mapping.targetId);
+                  const target = targets?.find(t => t.id === mapping.targetId);
                   const displayName = mapping.targetName || target?.name || 'Unknown Target';
+                  const unit = target?.unit || '';
+                  const isEditingThis = editingContributionId === mapping.targetId;
+
                   return (
-                    <div key={i} className="flex items-center gap-2 text-xs font-mono bg-primary/10 px-2 py-1.5 rounded">
+                    <div key={i} className="flex items-center gap-2 text-xs font-mono bg-primary/10 px-2 py-1.5 rounded group">
                       <Target className="h-3 w-3 text-primary flex-shrink-0" />
                       <span className="text-foreground">{displayName}</span>
-                      {mapping.contributionValue && (
-                        <span className="text-primary font-bold ml-auto">
-                          +{mapping.contributionValue.toLocaleString()}
-                        </span>
-                      )}
+                      <div className="ml-auto flex items-center gap-2">
+                        {isEditingThis ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              value={editingContributionValue}
+                              onChange={(e) => setEditingContributionValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveContribution();
+                                if (e.key === 'Escape') setEditingContributionId(null);
+                              }}
+                              className="w-16 h-6 text-xs font-mono px-1"
+                              autoFocus
+                            />
+                            {unit && <span className="text-muted-foreground">{unit}</span>}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleSaveContribution}
+                              className="h-5 w-5 p-0"
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleStartEditContribution(mapping.targetId, mapping.contributionValue)}
+                            className="text-primary font-bold hover:underline cursor-pointer"
+                            title="Click to edit"
+                          >
+                            +{mapping.contributionValue?.toLocaleString() || '?'}{unit && ` ${unit}`}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleUnlinkTarget(mapping.targetId)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          title="Unlink target"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -154,6 +261,45 @@ export function SummaryReview({
             ) : (
               <div className="text-xs font-mono text-muted-foreground italic">
                 No targets linked
+              </div>
+            )}
+
+            {/* Add Target Button */}
+            {availableTargets.length > 0 && (
+              <div className="mt-2">
+                {showAddTarget ? (
+                  <div className="flex items-center gap-2">
+                    <Select onValueChange={handleAddTarget}>
+                      <SelectTrigger className="h-7 text-xs font-mono flex-1">
+                        <SelectValue placeholder="Select a target..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTargets.map((target) => (
+                          <SelectItem key={target.id} value={target.id} className="text-xs font-mono">
+                            {target.name}
+                            {target.unit && <span className="text-muted-foreground ml-1">({target.unit})</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAddTarget(false)}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAddTarget(true)}
+                    className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add target
+                  </button>
+                )}
               </div>
             )}
           </div>

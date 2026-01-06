@@ -188,10 +188,10 @@ BEHAVIOR:
 
 CRITICAL RULES - NEVER VIOLATE:
 1. ONLY ask about work completed TODAY (not future plans, products, or roadmaps)
-2. NEVER mention or ask about targets unless the user explicitly mentions them first
-3. NEVER make up or infer information the user didn't explicitly state
-4. Focus ONLY on: What did they do? What skills? What was achieved? What were the results?
-5. Do NOT ask about: future features, product roadmaps, long-term plans, or hypotheticals
+2. NEVER make up or infer information the user didn't explicitly state
+3. Focus ONLY on: What did they do? What skills? What was achieved? What were the results?
+4. Do NOT ask about: future features, product roadmaps, long-term plans, or hypotheticals
+5. When work clearly relates to a target, ask about specific progress/contributions
 
 Current exchange: ${exchangeCount + 1} of ${maxExchanges}
 ${shouldSummarize ? '\nThis is the FINAL exchange. Send a brief, friendly acknowledgment and let them know you will create their summary.' : ''}

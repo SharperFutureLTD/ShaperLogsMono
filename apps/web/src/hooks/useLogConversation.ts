@@ -397,6 +397,12 @@ export function useLogConversation() {
     }
   }, [summary]);
 
+  const updateTargetMappings = useCallback((mappings: SummaryData['targetMappings']) => {
+    if (summary) {
+      setSummary({ ...summary, targetMappings: mappings });
+    }
+  }, [summary]);
+
   const acceptSummary = useCallback(async () => {
     acceptSummaryMutation.mutate();
   }, [acceptSummaryMutation]);
@@ -452,6 +458,7 @@ export function useLogConversation() {
     isLoading,
     sendMessage,
     updateSummary,
+    updateTargetMappings,
     acceptSummary,
     resetConversation,
     skipToSummary,

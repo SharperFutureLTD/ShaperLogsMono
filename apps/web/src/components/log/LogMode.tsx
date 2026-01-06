@@ -24,6 +24,7 @@ export function LogMode() {
     isLoading,
     sendMessage,
     updateSummary,
+    updateTargetMappings,
     acceptSummary,
     skipToSummary,
     resetConversation,
@@ -86,6 +87,7 @@ export function LogMode() {
           summary={summary}
           isLoading={isLoading}
           onUpdate={updateSummary}
+          onUpdateTargetMappings={updateTargetMappings}
           onAccept={acceptSummary}
         />
       )}
