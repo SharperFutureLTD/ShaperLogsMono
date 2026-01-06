@@ -66,7 +66,7 @@ app.openapi(listRoute, async (c) => {
 });
 
 // POST /api/saved-prompts - Create saved prompt
-const createRoute = createRoute({
+const createSavedPromptRoute = createRoute({
   method: 'post',
   path: '/api/saved-prompts',
   tags: ['Saved Prompts'],
@@ -92,7 +92,7 @@ const createRoute = createRoute({
   },
 });
 
-app.openapi(createRoute, async (c) => {
+app.openapi(createSavedPromptRoute, async (c) => {
   const userId = c.get('userId');
   const token = c.get('token');
   const supabase = createUserClient(token);
