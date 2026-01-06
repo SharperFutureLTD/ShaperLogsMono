@@ -16,7 +16,7 @@ import {
 import type { SavedPrompt } from '@/hooks/useSavedPrompts';
 
 interface GenerateTypeSelectorProps {
-  selectedType: GenerateType | 'saved';
+  selectedType: GenerateType | 'saved' | null;
   industry: string | null;
   employmentStatus: string | null;
   studyField: string | null;
@@ -99,7 +99,7 @@ export function GenerateTypeSelector({
             </button>
           ))}
         </div>
-        {selectedType !== 'saved' && !selectedSavedPromptId && (
+        {selectedType && selectedType !== 'saved' && !selectedSavedPromptId && (
           <p className="text-xs text-muted-foreground">
             {contentTypes.find(o => o.type === selectedType)?.description}
           </p>

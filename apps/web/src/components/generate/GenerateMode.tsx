@@ -114,7 +114,6 @@ export function GenerateMode() {
       {/* Input Box */}
       <GenerateConversationBox
         prompt={prompt}
-        selectedType={selectedType}
         isGenerating={isGenerating}
         workEntriesCount={workEntriesCount}
         onPromptChange={handlePromptChange}

@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 interface GenerateState {
   isGenerating: boolean;
   generatedContent: string | null;
-  selectedType: GenerateType;
+  selectedType: GenerateType | null;
   prompt: string;
   contextDocument: string | null;
 }
@@ -25,7 +25,7 @@ export function useGenerateConversation() {
   const [state, setState] = useState<GenerateState>({
     isGenerating: false,
     generatedContent: null,
-    selectedType: 'linkedin_post',
+    selectedType: null,
     prompt: '',
     contextDocument: null,
   });
@@ -48,7 +48,7 @@ export function useGenerateConversation() {
       // Call REST API instead of Edge Function
       const response = await apiClient.generateContent({
         prompt: promptToUse,
-        type: state.selectedType,
+        type: state.selectedType!, // Validated before mutation is called
         workEntries: entriesForContext,
         industry: profile?.industry || 'general',
         contextDocument: state.contextDocument || undefined,
@@ -77,7 +77,7 @@ export function useGenerateConversation() {
     },
   });
 
-  const setSelectedType = useCallback((type: GenerateType) => {
+  const setSelectedType = useCallback((type: GenerateType | null) => {
     setState(prev => ({ ...prev, selectedType: type }));
   }, []);
 
@@ -97,13 +97,18 @@ export function useGenerateConversation() {
       return null;
     }
 
+    if (!state.selectedType) {
+      toast.error('Please select a content type');
+      return null;
+    }
+
     try {
       const content = await generateMutation.mutateAsync(promptToUse);
       return content;
     } catch (error) {
       return null;
     }
-  }, [state.prompt, generateMutation]);
+  }, [state.prompt, state.selectedType, generateMutation]);
 
   const save = useCallback(async () => {
     if (!state.generatedContent) {
@@ -114,7 +119,7 @@ export function useGenerateConversation() {
     try {
       const workEntryIds = workEntries.map(e => e.id);
       const saved = await saveContent({
-        type: state.selectedType,
+        type: state.selectedType!, // Type is set when content was generated
         prompt: state.prompt,
         content: state.generatedContent,
         work_entry_ids: workEntryIds
@@ -126,7 +131,7 @@ export function useGenerateConversation() {
       setState({
         isGenerating: false,
         generatedContent: null,
-        selectedType: 'linkedin_post',
+        selectedType: null,
         prompt: '',
         contextDocument: null,
       });
@@ -143,7 +148,7 @@ export function useGenerateConversation() {
     setState({
       isGenerating: false,
       generatedContent: null,
-      selectedType: 'linkedin_post',
+      selectedType: null,
       prompt: '',
       contextDocument: null,
     });

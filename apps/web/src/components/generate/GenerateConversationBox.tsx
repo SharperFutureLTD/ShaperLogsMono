@@ -4,7 +4,6 @@ import { KeyboardEvent, useRef, useState, useEffect } from 'react';
 import { Sparkles, Paperclip, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { GenerateType } from '@/types/generate';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
 import { ActionButton } from '@/components/log/ActionButton';
@@ -24,7 +23,6 @@ const FILE_TYPES = {
 
 interface GenerateConversationBoxProps {
   prompt: string;
-  selectedType: GenerateType;
   isGenerating: boolean;
   workEntriesCount: number;
   onPromptChange: (prompt: string) => void;
@@ -37,7 +35,6 @@ type ActionButtonMode = 'mic' | 'recording' | 'transcribing' | 'send';
 
 export function GenerateConversationBox({
   prompt,
-  selectedType,
   isGenerating,
   workEntriesCount,
   onPromptChange,
@@ -49,6 +46,7 @@ export function GenerateConversationBox({
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [actionButtonMode, setActionButtonMode] = useState<ActionButtonMode>('mic');
+  const [isFocused, setIsFocused] = useState(false);
 
   const {
     isRecording,
@@ -153,12 +151,21 @@ export function GenerateConversationBox({
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder={isRecording ? "recording" : "Describe what you'd like to generate..."}
             disabled={isGenerating || isTranscribing}
-            className={`min-h-[100px] max-h-[200px] resize-none pr-14 py-2 font-mono text-base md:text-sm leading-snug border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 ${
+            className={`min-h-[48px] max-h-[200px] resize-none pr-14 py-2 font-mono text-base md:text-sm leading-snug border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 ${
               isRecording ? 'placeholder:text-destructive placeholder:animate-pulse' : ''
             }`}
           />
+
+          {/* Blinking cursor when focused and empty */}
+          {isFocused && !prompt && !isRecording && (
+            <span className="absolute left-3 top-3 font-mono text-sm text-foreground cursor-blink">
+              _
+            </span>
+          )}
 
           {/* Action button (mic/send) */}
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
