@@ -56,6 +56,13 @@ export type EmploymentStatus = keyof typeof CATEGORY_BY_EMPLOYMENT;
 /**
  * Get categories for user based on employment status
  */
-export function getCategoriesForUser(employmentStatus?: EmploymentStatus): string[] {
-  return CATEGORY_BY_EMPLOYMENT[employmentStatus || 'professional'];
+export function getCategoriesForUser(employmentStatus?: EmploymentStatus | string): string[] {
+  // Map employment statuses to category keys
+  // 'employed' and 'job_seeking' use professional categories
+  const categoryKey: keyof typeof CATEGORY_BY_EMPLOYMENT =
+    employmentStatus === 'student' ? 'student' :
+    employmentStatus === 'apprentice' ? 'apprentice' :
+    'professional';
+
+  return CATEGORY_BY_EMPLOYMENT[categoryKey];
 }

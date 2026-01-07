@@ -94,7 +94,7 @@ app.openapi(summarizeRoute, async (c) => {
 
     const employmentStatus = profile?.employment_status || _employmentStatus || 'professional';
     const categoryList = getCategoriesForUser(employmentStatus as any);
-    const categoryOptions = categoryList.join(', ');
+    const categoryOptions = categoryList?.join(', ') || 'General';
 
     // Build conversation context
     const conversationText = conversation
