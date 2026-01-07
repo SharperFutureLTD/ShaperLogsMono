@@ -2,36 +2,32 @@
 
 import { useState } from 'react'
 import { useProfile } from '@/hooks/useProfile'
+import { useAuth } from '@/hooks/useAuth'
 import { Onboarding } from '@/components/Onboarding'
-import { Header } from '@/components/Header'
-import { RightSidebar } from '@/components/RightSidebar'
-import { ModeToggle, Mode } from '@/components/ModeToggle'
+import { LeftSidebar } from '@/components/layout/LeftSidebar'
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
+import { GreetingHeader } from '@/components/dashboard/GreetingHeader'
 import { LogMode } from '@/components/log/LogMode'
 import { GenerateMode } from '@/components/generate/GenerateMode'
 import { TargetsMode } from '@/components/targets/TargetsMode'
 
+type Mode = 'log' | 'generate' | 'targets'
+
 export default function DashboardPage() {
   const { profile, loading, completeOnboarding, isCompletingOnboarding } = useProfile()
+  const { user } = useAuth()
   const [mode, setMode] = useState<Mode>('log')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const getTitle = () => {
-    switch (mode) {
-      case 'log': return 'Log Your Work';
-      case 'generate': return 'Generate Content';
-      case 'targets': return 'Track Your Targets';
-    }
-  };
-
-  const getSubtitle = () => {
-    switch (mode) {
-      case 'log': return 'Tell me what you accomplished today';
-      case 'generate': return 'Describe what you need, I\'ll use your history';
-      case 'targets': return 'Set and track your professional goals';
-    }
-  };
-
-  if (loading) return <div className="p-8">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const needsOnboarding = !profile?.industry || !profile?.employment_status
 
@@ -39,31 +35,40 @@ export default function DashboardPage() {
     return <Onboarding onComplete={completeOnboarding} isSubmitting={isCompletingOnboarding} />
   }
 
+  const displayName = profile?.display_name || user?.email?.split('@')[0]
+
   return (
-    <>
-      <Header onMenuClick={() => setSidebarOpen(true)} />
-      <RightSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop sidebar */}
+      <LeftSidebar
+        currentMode={mode}
+        onModeChange={(newMode) => setMode(newMode as Mode)}
+        userName={displayName}
+        userEmail={user?.email}
+      />
 
-      <main className="container max-w-2xl mx-auto px-4 pt-24 pb-8">
-        {/* Title Section */}
-        <div className="text-center mb-10">
-          <h2 className="font-sans text-2xl md:text-4xl font-bold tracking-tight">
-            {getTitle()}
-          </h2>
-          <p className="mt-2 md:mt-3 text-sm md:text-base text-muted-foreground font-mono">
-            {getSubtitle()}
-          </p>
+      {/* Main content */}
+      <main className="flex-1 pb-20 md:pb-8">
+        <div className="container max-w-3xl mx-auto px-4 py-6 md:py-8">
+          {/* Greeting */}
+          <GreetingHeader name={displayName} />
+
+          {/* Mode content */}
+          <div className="space-y-6">
+            {mode === 'log' && <LogMode />}
+            {mode === 'generate' && <GenerateMode />}
+            {mode === 'targets' && <TargetsMode />}
+          </div>
         </div>
-
-        {/* Mode Toggle */}
-        <div className="mb-6 flex justify-center">
-          <ModeToggle mode={mode} onModeChange={setMode} />
-        </div>
-
-        {mode === 'log' && <LogMode />}
-        {mode === 'generate' && <GenerateMode />}
-        {mode === 'targets' && <TargetsMode />}
       </main>
-    </>
+
+      {/* Mobile bottom nav */}
+      <MobileBottomNav
+        currentMode={mode}
+        onModeChange={(newMode) => setMode(newMode as Mode)}
+        userName={displayName}
+        userEmail={user?.email}
+      />
+    </div>
   )
 }

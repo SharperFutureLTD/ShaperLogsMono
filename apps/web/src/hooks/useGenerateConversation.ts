@@ -48,7 +48,7 @@ export function useGenerateConversation() {
       // Call REST API instead of Edge Function
       const response = await apiClient.generateContent({
         prompt: promptToUse,
-        type: state.selectedType!, // Validated before mutation is called
+        type: state.selectedType || 'general',
         workEntries: entriesForContext,
         industry: profile?.industry || 'general',
         contextDocument: state.contextDocument || undefined,
@@ -97,18 +97,13 @@ export function useGenerateConversation() {
       return null;
     }
 
-    if (!state.selectedType) {
-      toast.error('Please select a content type');
-      return null;
-    }
-
     try {
       const content = await generateMutation.mutateAsync(promptToUse);
       return content;
     } catch (error) {
       return null;
     }
-  }, [state.prompt, state.selectedType, generateMutation]);
+  }, [state.prompt, generateMutation]);
 
   const save = useCallback(async () => {
     if (!state.generatedContent) {

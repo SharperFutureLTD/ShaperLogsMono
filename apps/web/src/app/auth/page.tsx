@@ -86,11 +86,11 @@ export default function Auth() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="font-sans text-3xl font-bold tracking-tight text-foreground uppercase">
-            SHARPER LOGS <span className="text-primary animate-pulse">_</span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Sharper Logs
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isLogin ? "Welcome back" : "Create your account"}
+            {isLogin ? "Welcome back! Let's continue building your career story." : "Start tracking your achievements today."}
           </p>
         </div>
 
@@ -99,59 +99,44 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <label htmlFor="displayName" className="text-sm text-muted-foreground">
-                  display_name
+                <label htmlFor="displayName" className="text-sm font-medium text-foreground">
+                  Your name
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
-                    {">"}
-                  </span>
-                  <Input
-                    id="displayName"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="pl-8 terminal-input font-mono"
-                    placeholder="your name"
-                  />
-                </div>
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your name"
+                />
               </div>
             )}
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm text-muted-foreground">
-                email
+              <label htmlFor="email" className="text-sm font-medium text-foreground">
+                Email
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
-                  {">"}
-                </span>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-8 terminal-input font-mono"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm text-muted-foreground">
-                password
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Password
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
-                  {">"}
-                </span>
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-8 pr-10 terminal-input font-mono"
+                  className="pr-10"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -168,19 +153,16 @@ export default function Auth() {
 
             {!isLogin && (
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm text-muted-foreground">
-                  confirm_password
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                  Confirm password
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
-                    {">"}
-                  </span>
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-8 pr-10 terminal-input font-mono"
+                    className="pr-10"
                     placeholder="••••••••"
                     required
                     minLength={6}
@@ -198,15 +180,16 @@ export default function Auth() {
 
             <Button
               type="submit"
-              className="w-full font-mono"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  processing<span className="cursor-blink">_</span>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Processing...
                 </span>
               ) : (
-                <span>{isLogin ? "[login]" : "[signup]"}</span>
+                <span>{isLogin ? "Sign in" : "Create account"}</span>
               )}
             </Button>
           </form>
@@ -224,14 +207,14 @@ export default function Auth() {
             >
               {isLogin
                 ? "Need an account? Sign up"
-                : "Already have an account? Log in"}
+                : "Already have an account? Sign in"}
             </button>
           </div>
         </div>
 
-        {/* Terminal-style footer */}
+        {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          $ log your work<span className="cursor-blink">_</span>
+          Your career growth engine
         </p>
       </div>
     </div>

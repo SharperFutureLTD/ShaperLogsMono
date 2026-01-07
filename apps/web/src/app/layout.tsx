@@ -1,10 +1,16 @@
 import './globals.css'
-import { GeistSans, GeistMono } from 'geist/font'
+import { Inter } from 'next/font/google'
+import { GeistMono } from 'geist/font'
 import { Providers } from './providers'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
 
 export const metadata = {
   title: 'Sharper Logs',
-  description: 'Professional development logging and content generation',
+  description: 'Your career growth engine - never forget what you\'ve accomplished',
 }
 
 export const viewport = {
@@ -21,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-mono antialiased`}>
+      <body className={`${inter.variable} ${GeistMono.variable} font-sans antialiased`}>
         <Providers>
           {children}
         </Providers>

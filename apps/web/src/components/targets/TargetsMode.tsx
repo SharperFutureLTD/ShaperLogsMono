@@ -93,7 +93,7 @@ export function TargetsMode() {
   return (
     <div className="space-y-6">
       {/* Actions */}
-      <div className="flex gap-2 justify-center">
+      <div className="flex gap-2 justify-center flex-wrap">
         <Button
           variant={showUpload ? "default" : "outline"}
           size="sm"
@@ -101,10 +101,9 @@ export function TargetsMode() {
             setShowUpload(!showUpload);
             setShowForm(false);
           }}
-          className="font-mono text-xs"
         >
-          <Upload className="h-3 w-3 mr-1" />
-          [UPLOAD DOCUMENT]
+          <Upload className="h-4 w-4 mr-1.5" />
+          Upload document
         </Button>
         <Button
           variant={showForm ? "default" : "outline"}
@@ -113,20 +112,19 @@ export function TargetsMode() {
             setShowForm(!showForm);
             setShowUpload(false);
           }}
-          className="font-mono text-xs"
         >
-          <Plus className="h-3 w-3 mr-1" />
-          [ADD MANUALLY]
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add manually
         </Button>
         {targets.length > 0 && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowClearAllDialog(true)}
-            className="font-mono text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <Trash2 className="h-3 w-3 mr-1" />
-            [CLEAR ALL]
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Clear all
           </Button>
         )}
       </div>
@@ -158,11 +156,11 @@ export function TargetsMode() {
       {/* Target List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-mono text-sm text-muted-foreground">
-            Active Targets
+          <h2 className="text-sm font-medium text-foreground">
+            Your Targets
           </h2>
           {filteredTargets.length !== targets.length && (
-            <span className="font-mono text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Showing {filteredTargets.length} of {targets.length}
             </span>
           )}
@@ -179,31 +177,31 @@ export function TargetsMode() {
       {/* Summary Stats */}
       {targets.length > 0 && (
         <div className="p-4 border border-border rounded-lg bg-card">
-          <h3 className="font-mono text-xs text-muted-foreground mb-3">
+          <h3 className="text-xs font-medium text-muted-foreground mb-3">
             Summary
           </h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="font-mono text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-foreground">
                 {stats.total}
               </div>
-              <div className="font-mono text-xs text-muted-foreground">
-                Total Targets
+              <div className="text-xs text-muted-foreground">
+                Total
               </div>
             </div>
             <div>
-              <div className="font-mono text-2xl font-bold text-primary">
+              <div className="text-2xl font-bold text-primary">
                 {stats.withEvidence}
               </div>
-              <div className="font-mono text-xs text-muted-foreground">
-                With Evidence
+              <div className="text-xs text-muted-foreground">
+                With evidence
               </div>
             </div>
             <div>
-              <div className="font-mono text-2xl font-bold text-destructive">
+              <div className="text-2xl font-bold text-destructive">
                 {stats.overdue}
               </div>
-              <div className="font-mono text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 Overdue
               </div>
             </div>

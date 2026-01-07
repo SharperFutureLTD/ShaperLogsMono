@@ -135,20 +135,20 @@ export function LogConversationBox({
       {isActive && (
         <div className="animate-expand-in relative">
           {/* Header */}
-          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-            <span className="font-mono text-xs text-muted-foreground">
-              // conversation
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Conversation
             </span>
             {onClear && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
                 onClick={onClear}
                 title="Clear chat"
                 disabled={isSummarizing}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
@@ -194,15 +194,12 @@ export function LogConversationBox({
                   )}
                   <div
                     className={cn(
-                      "max-w-[90%] md:max-w-[85%] rounded-md px-3 py-2 font-mono text-sm",
+                      "max-w-[90%] md:max-w-[85%] rounded-lg px-3 py-2 text-sm",
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground"
                     )}
                   >
-                    <span className="opacity-60 mr-2">
-                      {message.role === "user" ? ">" : "$"}
-                    </span>
                     {message.content}
                   </div>
                 </div>
@@ -212,9 +209,8 @@ export function LogConversationBox({
             {/* AI typing indicator */}
             {isLoading && isInProgress && (
               <div className="flex justify-start">
-                <div className="bg-muted text-foreground rounded-md px-3 py-2 font-mono text-sm">
-                  <span className="opacity-60 mr-2">$</span>
-                  <span className="text-muted-foreground animate-pulse">typing</span>
+                <div className="bg-muted text-foreground rounded-lg px-3 py-2 text-sm">
+                  <span className="text-muted-foreground animate-pulse">Thinking...</span>
                 </div>
               </div>
             )}
@@ -231,15 +227,15 @@ export function LogConversationBox({
       {/* Error display - shown when summary generation fails */}
       {summaryError && (
         <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/30">
-          <p className="font-mono text-xs text-destructive mb-2">{summaryError}</p>
+          <p className="text-sm text-destructive mb-2">{summaryError}</p>
           {onRetry && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onRetry}
-              className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              <RefreshCw className="h-3 w-3 mr-1" />
+              <RefreshCw className="h-4 w-4 mr-1.5" />
               Try again
             </Button>
           )}
@@ -252,11 +248,6 @@ export function LogConversationBox({
           {/* Top: Input area */}
           <div className="flex items-center gap-2 p-3">
             <div className="relative flex-1">
-              {/* Terminal prompt indicator */}
-              <div className="absolute left-3 top-1/2 -translate-y-[52%] text-primary font-mono text-sm z-10">
-                {">"}
-              </div>
-
               <Textarea
                 ref={textareaRef}
                 value={value}
@@ -264,21 +255,14 @@ export function LogConversationBox({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "recording" : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
+                placeholder={isRecording ? "Listening..." : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
                 disabled={inputDisabled}
                 className={cn(
-                  "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-9 pr-14 py-2 font-mono text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
+                  "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-3 pr-14 py-2 text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
                   isRecording && "placeholder:text-destructive placeholder:animate-pulse"
                 )}
                 rows={1}
               />
-
-              {/* Blinking cursor when focused and empty */}
-              {isFocused && !value && !isRecording && (
-                <span className="absolute left-9 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground cursor-blink">
-                  _
-                </span>
-              )}
 
               {/* Action button (mic/send) */}
               <div className="absolute right-2 top-1/2 -translate-y-1/2">

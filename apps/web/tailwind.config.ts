@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
-        sans: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         // Responsive heading scales for mobile optimization
@@ -82,6 +82,27 @@ export default {
         },
         glow: {
           primary: "hsl(var(--glow-primary))",
+        },
+        // Accent colors for habit-building features
+        streak: {
+          DEFAULT: "hsl(var(--streak))",
+          foreground: "hsl(var(--streak-foreground))",
+        },
+        insight: {
+          DEFAULT: "hsl(var(--insight))",
+          foreground: "hsl(var(--insight-foreground))",
+        },
+        achievement: {
+          DEFAULT: "hsl(var(--achievement))",
+          foreground: "hsl(var(--achievement-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
       },
       borderRadius: {
