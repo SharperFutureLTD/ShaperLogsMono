@@ -22,11 +22,13 @@ export function LogMode() {
     maxExchanges,
     summary,
     isLoading,
+    summaryError,
     sendMessage,
     updateSummary,
     updateTargetMappings,
     acceptSummary,
     skipToSummary,
+    retrySummary,
     resetConversation,
     undoLastExchange
   } = useLogConversation();
@@ -75,8 +77,10 @@ export function LogMode() {
         maxExchanges={maxExchanges}
         isLoading={isLoading}
         status={status}
+        summaryError={summaryError}
         onSubmit={sendMessage}
         onSkipToSummary={skipToSummary}
+        onRetry={retrySummary}
         onClear={resetConversation}
         onUndo={undoLastExchange}
       />

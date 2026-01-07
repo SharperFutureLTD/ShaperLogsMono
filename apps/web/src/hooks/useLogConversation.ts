@@ -44,6 +44,7 @@ export function useLogConversation() {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   // CRITICAL: Hydrate state from sessionStorage after mount (user-scoped)
   useEffect(() => {
@@ -226,8 +227,8 @@ export function useLogConversation() {
         content: m.content
       }));
 
-      // Prepare targets for AI context
-      const activeTargets = targets.map(t => ({
+      // Prepare targets for AI context (defensive null check)
+      const activeTargets = (targets || []).map(t => ({
         id: t.id,
         name: t.name,
         description: t.description,
@@ -251,6 +252,7 @@ export function useLogConversation() {
     },
 
     onMutate: () => {
+      setSummaryError(null); // Clear previous error
       setStatus('summarizing');
       setIsLoading(true);
     },
@@ -263,7 +265,9 @@ export function useLogConversation() {
 
     onError: (err) => {
       console.error('Error generating summary:', err);
-      toast.error('Failed to generate summary');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate summary';
+      setSummaryError(errorMessage);
+      toast.error(errorMessage);
       setStatus('in_progress');
       setIsLoading(false);
     },
@@ -428,6 +432,13 @@ export function useLogConversation() {
     }
   }, [messages, generateSummary]);
 
+  const retrySummary = useCallback(() => {
+    setSummaryError(null);
+    if (messages.length > 0) {
+      summarizeMutation.mutate(messages);
+    }
+  }, [messages, summarizeMutation]);
+
   const undoLastExchange = useCallback(() => {
     setMessages((prev) => {
       // Remove last assistant message if present
@@ -456,12 +467,14 @@ export function useLogConversation() {
     maxExchanges: MAX_EXCHANGES,
     summary,
     isLoading,
+    summaryError,
     sendMessage,
     updateSummary,
     updateTargetMappings,
     acceptSummary,
     resetConversation,
     skipToSummary,
+    retrySummary,
     undoLastExchange
   };
 }

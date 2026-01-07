@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react";
-import { FastForward, Trash2, RotateCcw, Pencil } from "lucide-react";
+import { FastForward, Trash2, RotateCcw, Pencil, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,8 +19,10 @@ interface LogConversationBoxProps {
   maxExchanges: number;
   isLoading: boolean;
   status: ConversationStatus;
+  summaryError?: string | null;
   onSubmit: (text: string) => void;
   onSkipToSummary: () => void;
+  onRetry?: () => void;
   onClear?: () => void;
   onUndo?: () => void;
 }
@@ -31,8 +33,10 @@ export function LogConversationBox({
   maxExchanges,
   isLoading,
   status,
+  summaryError,
   onSubmit,
   onSkipToSummary,
+  onRetry,
   onClear,
   onUndo
 }: LogConversationBoxProps) {
@@ -221,6 +225,24 @@ export function LogConversationBox({
 
           {/* Summary loading overlay - shown on top of messages during summarization */}
           {isSummarizing && <SummaryLoadingOverlay />}
+        </div>
+      )}
+
+      {/* Error display - shown when summary generation fails */}
+      {summaryError && (
+        <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/30">
+          <p className="font-mono text-xs text-destructive mb-2">{summaryError}</p>
+          {onRetry && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRetry}
+              className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Try again
+            </Button>
+          )}
         </div>
       )}
 
