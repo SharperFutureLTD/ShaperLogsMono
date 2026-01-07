@@ -179,7 +179,7 @@ export function LogConversationBox({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => {
                         if (onUndo) {
                           onUndo();
