@@ -56,20 +56,17 @@ export function TargetList({ targets, isLoading, onDelete, onArchive, onUpdate }
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#34A853' }} />
       </div>
     );
   }
 
   if (targets.length === 0) {
     return (
-      <div className="text-center py-12 border border-dashed border-border rounded-lg">
-        <Target className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-        <p className="font-mono text-sm text-muted-foreground">
-          No targets yet
-        </p>
-        <p className="font-mono text-xs text-muted-foreground mt-1">
-          Upload a document or add targets manually
+      <div className="empty-card">
+        <Target className="h-6 w-6 mx-auto mb-2" style={{ color: '#5C6660' }} />
+        <p className="text-sm" style={{ color: '#5C6660' }}>
+          No targets match your filters
         </p>
       </div>
     );

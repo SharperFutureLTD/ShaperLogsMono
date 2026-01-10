@@ -2,41 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sharper Logs Design System - Warm, modern, habit-forming aesthetic */
+/* Sharper Logs Design System v2.6 */
 
 @layer base {
   :root {
-    /* Light mode - keeping for completeness but dark is default */
+    /* Light mode - keeping for completeness */
     --background: 0 0% 98%;
     --foreground: 0 0% 9%;
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
-
     --primary: 142 76% 36%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 9%;
-
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 9%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 90%;
     --input: 0 0% 90%;
     --ring: 142 76% 36%;
-
-    --radius: 0.5rem;
-
+    --radius: 0.75rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 26%;
     --sidebar-primary: 0 0% 10%;
@@ -48,50 +38,64 @@
   }
 
   .dark {
-    /* Warm dark theme - approachable, not clinical */
-    --background: 220 16% 7%;
-    --foreground: 210 20% 95%;
+    /* New color system - Sharper Logs v2.6 */
+    /* Using HSL values converted from hex */
 
-    --card: 220 16% 10%;
-    --card-foreground: 210 20% 95%;
+    /* Background colors */
+    --background: 150 23% 4%;           /* #0A0F0D - bg-base */
+    --foreground: 120 20% 96%;          /* #F1F5F3 - text-primary */
 
-    --popover: 220 16% 10%;
-    --popover-foreground: 210 20% 95%;
+    /* Elevated surfaces */
+    --card: 150 12% 8%;                 /* #141A17 - bg-elevated */
+    --card-foreground: 120 20% 96%;     /* #F1F5F3 */
 
-    /* Primary - softer, warmer green */
-    --primary: 152 60% 45%;
-    --primary-foreground: 0 0% 100%;
+    /* Surface (inputs, nested) */
+    --surface: 150 10% 12%;             /* #1C2420 - bg-surface */
 
-    --secondary: 220 16% 15%;
-    --secondary-foreground: 210 20% 95%;
+    --popover: 150 12% 8%;              /* #141A17 */
+    --popover-foreground: 120 20% 96%;  /* #F1F5F3 */
 
-    --muted: 220 16% 15%;
-    --muted-foreground: 210 10% 55%;
+    /* Primary green - #34A853 */
+    --primary: 138 52% 43%;
+    --primary-foreground: 150 23% 4%;   /* Dark text on green */
 
-    --accent: 220 16% 15%;
-    --accent-foreground: 210 20% 95%;
+    --secondary: 150 10% 12%;           /* #1C2420 */
+    --secondary-foreground: 120 20% 96%;
 
-    --destructive: 0 62% 50%;
+    --muted: 150 10% 12%;               /* #1C2420 */
+    --muted-foreground: 120 8% 37%;     /* #5C6660 - text-muted */
+
+    --accent: 150 10% 12%;
+    --accent-foreground: 120 20% 96%;
+
+    /* Destructive - #EF4444 */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 16% 18%;
-    --input: 220 16% 15%;
-    --ring: 152 60% 45%;
+    /* Border colors */
+    --border: 150 10% 17%;              /* #2A332E - border-default */
+    --border-subtle: 150 8% 24%;        /* #3A443E - border-subtle */
+    --input: 150 10% 12%;               /* #1C2420 */
+    --ring: 138 52% 43%;                /* #34A853 */
 
-    --sidebar-background: 220 16% 8%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 152 60% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 16% 15%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 16% 18%;
-    --sidebar-ring: 152 60% 45%;
+    --radius: 0.75rem;
 
-    /* Custom tokens for glow effects */
-    --glow-primary: 152 60% 45%;
+    /* Sidebar */
+    --sidebar-background: 150 12% 8%;   /* #141A17 */
+    --sidebar-foreground: 120 20% 96%;  /* #F1F5F3 */
+    --sidebar-primary: 138 52% 43%;     /* #34A853 */
+    --sidebar-primary-foreground: 150 23% 4%;
+    --sidebar-accent: 138 52% 43%;
+    --sidebar-accent-foreground: 150 23% 4%;
+    --sidebar-border: 150 10% 17%;      /* #2A332E */
+    --sidebar-ring: 138 52% 43%;
 
-    /* Accent colors for habit-building features */
-    --streak: 38 92% 50%;
+    /* Custom tokens */
+    --glow-primary: 138 52% 43%;
+
+    /* Accent colors for features */
+    --streak: 38 92% 50%;               /* #F59E0B - amber */
+    --streak-bright: 45 93% 58%;        /* #FBBF24 - bright amber (glow) */
     --streak-foreground: 0 0% 100%;
 
     --insight: 210 100% 60%;
@@ -100,11 +104,16 @@
     --achievement: 280 60% 60%;
     --achievement-foreground: 0 0% 100%;
 
-    --success: 152 60% 45%;
+    --success: 138 52% 43%;             /* #34A853 */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 50%;              /* #F59E0B */
     --warning-foreground: 0 0% 10%;
+
+    /* Text colors for direct use */
+    --text-primary: 120 20% 96%;        /* #F1F5F3 */
+    --text-secondary: 100 8% 63%;       /* #9CA898 */
+    --text-muted: 120 8% 37%;           /* #5C6660 */
   }
 }
 
@@ -137,118 +146,443 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* Firefox scrollbar */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
-  /* Blinking cursor animation */
-  .cursor-blink {
-    animation: blink 1s step-end infinite;
+  /* Card hover slide effect */
+  .card-slide {
+    @apply transition-transform duration-200 ease-out cursor-pointer;
   }
 
-  @keyframes blink {
-    0%, 50% {
-      opacity: 1;
-    }
-    51%, 100% {
-      opacity: 0;
-    }
+  .card-slide:hover {
+    transform: translateX(4px);
   }
 
-  /* Card glow on hover */
-  .card-glow {
-    @apply transition-shadow duration-300;
+  /* Hover reveal actions */
+  .hover-actions {
+    @apply opacity-0 transition-opacity duration-200;
   }
 
-  .card-glow:hover {
-    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.15);
+  .group:hover .hover-actions {
+    @apply opacity-100;
   }
 
-  /* Terminal input style */
-  .terminal-input {
-    @apply bg-transparent border-border focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all duration-200;
+  /* Entry card with green left border */
+  .entry-card {
+    @apply rounded-xl p-4 cursor-pointer transition-all duration-200;
+    background: #141A17;
+    border: 1px solid #2A332E;
+    border-left: 3px solid #34A853;
   }
 
-  /* Typing animation */
-  .typing-effect {
+  .entry-card:hover {
+    transform: translateX(4px);
+  }
+
+  /* Target card without green border */
+  .target-card {
+    @apply rounded-xl p-4 cursor-pointer transition-all duration-200 relative;
+    background: #141A17;
+    border: 1px solid #2A332E;
+  }
+
+  .target-card:hover {
+    transform: translateX(4px);
+  }
+
+  /* Input card with focus glow */
+  .input-card {
+    @apply rounded-xl p-4 cursor-text transition-all duration-200;
+    background: #141A17;
+    border: 1px solid #2A332E;
+  }
+
+  .input-card:focus-within {
+    border-color: #34A853;
+    box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.1);
+  }
+
+  /* Streak card glow effect */
+  .streak-card {
+    @apply rounded-xl p-4 text-center transition-all duration-300;
+    background: #1C2420;
+    border: 1px solid #2A332E;
+  }
+
+  .streak-card.glowing {
+    background: linear-gradient(145deg, rgba(251, 191, 36, 0.12) 0%, #1C2420 50%, rgba(251, 191, 36, 0.08) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.2), 0 0 40px rgba(251, 191, 36, 0.1);
+  }
+
+  .streak-card.glowing .streak-number {
+    color: #FBBF24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+  }
+
+  .streak-card.glowing .streak-icon {
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+  }
+
+  /* Filter pill buttons */
+  .filter-pill {
+    @apply px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200;
+    background: transparent;
+    color: #F1F5F3;
+    border: 1px solid #3A443E;
+  }
+
+  .filter-pill:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #2A332E;
+  }
+
+  .filter-pill.active {
+    background: #34A853;
+    color: #0A0F0D;
+    border-color: #34A853;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200;
+    background: #34A853;
+    color: #0A0F0D;
+  }
+
+  .btn-primary:hover {
+    transform: scale(1.02);
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200;
+    background: transparent;
+    color: #9CA898;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Outline button */
+  .btn-outline {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-200;
+    background: transparent;
+    color: #9CA898;
+    border: 1px solid #2A332E;
+  }
+
+  .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Mic button */
+  .btn-mic {
+    @apply w-10 h-10 rounded-full flex items-center justify-center transition-transform duration-200;
+    background: #34A853;
+    color: #0A0F0D;
+  }
+
+  .btn-mic:hover {
+    transform: scale(1.05);
+  }
+
+  /* Quick action button */
+  .quick-action {
+    @apply flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 w-full text-left;
+    background: #1C2420;
+    color: #9CA898;
+  }
+
+  .quick-action:hover {
+    color: #F1F5F3;
+  }
+
+  .quick-action:hover .quick-action-icon {
+    color: #34A853;
+  }
+
+  .quick-action:hover .quick-action-arrow {
+    opacity: 1;
+  }
+
+  .quick-action-arrow {
+    @apply ml-auto transition-opacity duration-200;
+    opacity: 0;
+    color: #34A853;
+  }
+
+  /* Status badges */
+  .badge-success {
+    @apply text-xs px-2 py-0.5 rounded font-medium;
+    background: rgba(52, 168, 83, 0.2);
+    color: #34A853;
+  }
+
+  .badge-warning {
+    @apply text-xs px-2 py-0.5 rounded font-medium;
+    background: rgba(245, 158, 11, 0.2);
+    color: #F59E0B;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden;
+    background: #0A0F0D;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-300;
+  }
+
+  .progress-bar-fill.success {
+    background: #34A853;
+  }
+
+  .progress-bar-fill.warning {
+    background: #F59E0B;
+  }
+
+  /* Section header */
+  .section-header {
+    @apply flex justify-between items-center mb-3;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold;
+    color: #F1F5F3;
+  }
+
+  .section-title-muted {
+    @apply text-xs font-semibold tracking-wider uppercase;
+    color: #5C6660;
+  }
+
+  .section-action {
+    @apply text-xs font-medium transition-all duration-200;
+    color: #34A853;
+  }
+
+  .section-action:hover {
+    text-decoration: underline;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply p-3 rounded-lg;
+    background: #1C2420;
+  }
+
+  .stat-value {
+    @apply text-xl font-bold;
+    color: #F1F5F3;
+  }
+
+  .stat-label {
+    @apply text-xs;
+    color: #5C6660;
+  }
+
+  .stat-change {
+    @apply text-xs font-medium mt-1;
+    color: #34A853;
+  }
+
+  /* Nav item */
+  .nav-item {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 w-full;
+    color: #9CA898;
+  }
+
+  .nav-item:hover {
+    color: #F1F5F3;
+  }
+
+  .nav-item.active {
+    background: rgba(52, 168, 83, 0.15);
+    color: #34A853;
+  }
+
+  /* Search input */
+  .search-input {
+    @apply w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none transition-all duration-200;
+    background: #1C2420;
+    border: 1px solid #2A332E;
+    color: #F1F5F3;
+  }
+
+  .search-input::placeholder {
+    color: #5C6660;
+  }
+
+  .search-input:focus {
+    border-color: #34A853;
+    box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.1);
+  }
+
+  /* Skill badge */
+  .skill-badge {
+    @apply text-xs px-2 py-1 rounded-md;
+    background: #1C2420;
+    color: #9CA898;
+  }
+
+  /* Count badge */
+  .count-badge {
+    @apply text-xs px-2 py-0.5 rounded-full;
+    background: rgba(52, 168, 83, 0.15);
+    color: #34A853;
+  }
+
+  /* Expandable content animation (CSS Grid technique) */
+  .expandable-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms ease-out;
+  }
+
+  .expandable-content.expanded {
+    grid-template-rows: 1fr;
+  }
+
+  .expandable-content > .expandable-inner {
     overflow: hidden;
-    white-space: nowrap;
-    animation: typing 0.8s steps(20, end);
   }
 
-  @keyframes typing {
-    from {
-      width: 0;
-    }
-    to {
-      width: 100%;
-    }
+  /* Chevron rotation for expand/collapse */
+  .expand-chevron {
+    @apply transition-transform duration-200;
   }
 
-  /* Smooth expand animation */
-  .expand-enter {
-    animation: expand-in 0.3s ease-out forwards;
+  .expand-chevron.expanded {
+    transform: rotate(180deg);
   }
 
-  .expand-exit {
-    animation: expand-out 0.3s ease-in forwards;
+  /* Unredacted badge */
+  .badge-unredacted {
+    @apply text-xs px-2 py-0.5 rounded font-medium;
+    background: rgba(245, 158, 11, 0.2);
+    color: #F59E0B;
   }
 
-@keyframes expand-in {
-    from {
-      opacity: 0;
-      max-height: 0;
-    }
-    to {
-      opacity: 1;
-      max-height: 400px;
-    }
+  /* Achievement list item in expanded view */
+  .achievement-item {
+    @apply flex items-start gap-2 text-sm py-1;
   }
 
-  .animate-expand-in {
-    animation: expand-in 0.3s ease-out forwards;
-    overflow: hidden;
+  .achievement-bullet {
+    @apply w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0;
+    background: #34A853;
   }
 
-  @keyframes expand-out {
-    from {
-      opacity: 1;
-      max-height: 1000px;
-      transform: translateY(0);
-    }
-    to {
-      opacity: 0;
-      max-height: 0;
-      transform: translateY(-10px);
-    }
+  /* Metric row in expanded view */
+  .metric-row {
+    @apply flex items-center justify-between text-sm py-1;
   }
 
-  /* Slide in from right for sidebar */
-  .slide-in-right {
-    animation: slide-right 0.25s ease-out forwards;
+  .metric-key {
+    color: #5C6660;
   }
 
-  .slide-out-right {
-    animation: slide-right-out 0.25s ease-in forwards;
+  .metric-value {
+    color: #F1F5F3;
+    font-weight: 500;
   }
 
-  @keyframes slide-right {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
+  /* Category badge */
+  .category-badge {
+    @apply text-xs px-2 py-1 rounded-md inline-flex items-center gap-1;
+    background: rgba(52, 168, 83, 0.1);
+    color: #34A853;
   }
 
-  @keyframes slide-right-out {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(100%);
-    }
+  /* Original conversation message */
+  .original-message {
+    @apply text-sm py-2 px-3 rounded-lg mb-2;
+    background: #1C2420;
   }
+
+  .original-message.user {
+    border-left: 2px solid #34A853;
+  }
+
+  .original-message.assistant {
+    border-left: 2px solid #5C6660;
+  }
+
+  /* Empty state card */
+  .empty-card {
+    @apply rounded-xl p-4 text-center;
+    background: #141A17;
+    border: 1px dashed #2A332E;
+  }
+
+  /* Keyboard hint */
+  .kbd {
+    @apply px-1 py-0.5 rounded text-xs;
+    background: #2A332E;
+    color: #9CA898;
+  }
+}
+
+/* Animation keyframes */
+@keyframes celebrationPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes recordingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(52, 168, 83, 0);
+  }
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-celebration-pop {
+  animation: celebrationPop 0.5s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-recording-pulse {
+  animation: recordingPulse 1.5s ease-in-out infinite;
+}
+
+.animate-toast-slide-up {
+  animation: toastSlideUp 0.3s ease forwards;
 }

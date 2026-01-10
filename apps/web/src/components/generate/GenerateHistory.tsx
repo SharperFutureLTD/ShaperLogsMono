@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react';
+import { Sparkles } from 'lucide-react';
 import { useGeneratedContent } from '@/hooks/useGeneratedContent';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,11 +43,9 @@ export function GenerateHistory() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h3 className="font-mono text-sm text-muted-foreground">
-          // generation history
-        </h3>
+        <h3 className="section-title">Generation History</h3>
         <div className="flex justify-center py-8">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#34A853] border-t-transparent" />
         </div>
       </div>
     );
@@ -55,11 +54,10 @@ export function GenerateHistory() {
   if (content.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="font-mono text-sm text-muted-foreground">
-          // generation history
-        </h3>
-        <div className="rounded-md border border-dashed border-border p-8 text-center">
-          <p className="font-mono text-sm text-muted-foreground">
+        <h3 className="section-title">Generation History</h3>
+        <div className="empty-card">
+          <Sparkles className="h-6 w-6 mx-auto mb-2" style={{ color: '#5C6660' }} />
+          <p className="text-sm" style={{ color: '#5C6660' }}>
             No generated content yet. Create something above!
           </p>
         </div>
@@ -70,11 +68,9 @@ export function GenerateHistory() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-mono text-sm text-muted-foreground">
-          // generation history
-        </h3>
+        <h3 className="section-title">Generation History</h3>
         {filteredContent.length !== content.length && content.length > 0 && (
-          <span className="font-mono text-xs text-muted-foreground">
+          <span className="text-xs" style={{ color: '#5C6660' }}>
             {filteredContent.length} of {content.length}
           </span>
         )}
@@ -89,11 +85,11 @@ export function GenerateHistory() {
       />
 
       {filteredContent.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border p-8 text-center">
-          <p className="font-mono text-sm text-muted-foreground">
+        <div className="empty-card">
+          <p className="text-sm" style={{ color: '#5C6660' }}>
             No content matches your filters.
           </p>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">
+          <p className="mt-2 text-xs" style={{ color: '#5C6660' }}>
             Try adjusting your filter criteria.
           </p>
         </div>

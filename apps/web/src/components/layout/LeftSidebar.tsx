@@ -1,49 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import {
-  MessageSquare,
-  Sparkles,
-  Target,
-  Settings,
-  HelpCircle,
-  LogOut
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
+import { usePathname } from 'next/navigation'
+import { Pencil, Sparkles, Target } from 'lucide-react'
+import { useGeneratedContent } from '@/hooks/useGeneratedContent'
 
 interface NavItem {
   id: string
   label: string
   icon: React.ComponentType<{ className?: string }>
-  href?: string
-  mode?: string
+  mode: string
+  badge?: number
 }
-
-interface NavSection {
-  title: string
-  items: NavItem[]
-}
-
-const navSections: NavSection[] = [
-  {
-    title: 'MAIN',
-    items: [
-      { id: 'log', label: 'Log', icon: MessageSquare, mode: 'log' },
-      { id: 'generate', label: 'Generate', icon: Sparkles, mode: 'generate' },
-      { id: 'progress', label: 'Progress', icon: Target, mode: 'targets' },
-    ],
-  },
-  {
-    title: 'ACCOUNT',
-    items: [
-      { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
-      { id: 'help', label: 'Help', icon: HelpCircle, href: '/help' },
-    ],
-  },
-]
 
 interface LeftSidebarProps {
   currentMode: string
@@ -56,117 +24,104 @@ export function LeftSidebar({
   currentMode,
   onModeChange,
   userName,
-  userEmail
 }: LeftSidebarProps) {
   const pathname = usePathname()
-  const { signOut } = useAuth()
+  const { content } = useGeneratedContent()
 
-  const handleNavClick = (item: NavItem) => {
-    if (item.mode) {
-      onModeChange(item.mode)
-    }
-  }
+  // Count recent generations for badge
+  const recentGenerationCount = content?.length || 0
+
+  const navItems: NavItem[] = [
+    { id: 'log', label: 'Log', icon: Pencil, mode: 'log' },
+    { id: 'generate', label: 'Generate', icon: Sparkles, mode: 'generate', badge: recentGenerationCount > 0 ? recentGenerationCount : undefined },
+    { id: 'progress', label: 'Progress', icon: Target, mode: 'targets' },
+  ]
 
   const isActive = (item: NavItem) => {
-    if (item.href) {
-      return pathname === item.href
-    }
-    if (item.mode) {
-      return currentMode === item.mode && pathname === '/'
-    }
-    return false
+    return currentMode === item.mode && pathname === '/'
   }
 
   return (
-    <aside className="hidden md:flex md:flex-col md:w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
+    <aside
+      className="hidden md:flex md:flex-col h-screen sticky top-0"
+      style={{
+        width: '180px',
+        background: '#141A17',
+        borderRight: '1px solid #2A332E'
+      }}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-sidebar-foreground">
+      <div className="py-4 px-3">
+        <Link href="/" className="block px-1">
+          <span className="text-base font-bold" style={{ color: '#F1F5F3' }}>
             Sharper Logs
           </span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-        {navSections.map((section) => (
-          <div key={section.title}>
-            <h3 className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider mb-2 px-3">
-              {section.title}
-            </h3>
-            <ul className="space-y-1">
-              {section.items.map((item) => {
-                const Icon = item.icon
-                const active = isActive(item)
+      <nav className="flex-1 px-3">
+        <div className="mb-1.5 px-1">
+          <span
+            className="text-xs font-semibold tracking-wider"
+            style={{ color: '#5C6660' }}
+          >
+            MAIN
+          </span>
+        </div>
+        <ul className="space-y-0.5">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const active = isActive(item)
 
-                if (item.href) {
-                  return (
-                    <li key={item.id}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                          active
-                            ? 'bg-sidebar-accent text-sidebar-primary'
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {item.label}
-                      </Link>
-                    </li>
-                  )
-                }
-
-                return (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => handleNavClick(item)}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors w-full text-left',
-                        active
-                          ? 'bg-sidebar-accent text-sidebar-primary'
-                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                      )}
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => onModeChange(item.mode)}
+                  className="nav-item"
+                  style={{
+                    background: active ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+                    color: active ? '#34A853' : '#9CA898',
+                  }}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge !== undefined && (
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded font-medium"
+                      style={{
+                        background: active ? '#34A853' : '#2A332E',
+                        color: active ? '#0A0F0D' : '#9CA898'
+                      }}
                     >
-                      <Icon className="h-5 w-5" />
-                      {item.label}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </nav>
 
       {/* User section */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-            <span className="text-sm font-medium text-sidebar-foreground">
-              {userName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
-            </span>
+      <div className="px-3 py-4" style={{ borderTop: '1px solid #2A332E' }}>
+        <div className="flex items-center gap-2 px-1">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-xs"
+            style={{ background: '#34A853', color: '#0A0F0D' }}
+          >
+            {userName?.charAt(0)?.toUpperCase() || 'U'}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
+          <div>
+            <div className="font-medium text-sm" style={{ color: '#F1F5F3' }}>
               {userName || 'User'}
-            </p>
-            <p className="text-xs text-sidebar-foreground/50 truncate">
-              {userEmail}
-            </p>
+            </div>
+            <div className="text-xs" style={{ color: '#34A853' }}>
+              Pro
+            </div>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={signOut}
-          className="w-full mt-2 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign out
-        </Button>
       </div>
     </aside>
   )

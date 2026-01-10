@@ -1,17 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react";
-import { FastForward, Trash2, RotateCcw, Pencil, RefreshCw } from "lucide-react";
+import { FastForward, Trash2, RotateCcw, Pencil, RefreshCw, Mic } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ActionButton } from "@/components/log/ActionButton";
 import { SummaryLoadingOverlay } from "@/components/log/SummaryLoadingOverlay";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 import { toast } from "sonner";
 import { type Message, ConversationStatus } from "@/types/log";
-
-type ActionButtonMode = 'mic' | 'recording' | 'transcribing' | 'send';
 
 interface LogConversationBoxProps {
   messages: Message[];
@@ -42,7 +39,7 @@ export function LogConversationBox({
 }: LogConversationBoxProps) {
   const [value, setValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const [actionButtonMode, setActionButtonMode] = useState<ActionButtonMode>('mic');
+  const [mode, setMode] = useState<'guided' | 'quick'>('guided');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -57,10 +54,8 @@ export function LogConversationBox({
   const isInProgress = status === "in_progress";
   const isSummarizing = status === "summarizing";
   const isReviewing = status === "review";
-  // Only disable input during summarization or review, NOT during conversation
   const inputDisabled = isReviewing || isSummarizing;
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -68,20 +63,6 @@ export function LogConversationBox({
     }
   }, [value]);
 
-  // Manage action button mode transitions
-  useEffect(() => {
-    if (isRecording) {
-      setActionButtonMode('recording');
-    } else if (isTranscribing) {
-      setActionButtonMode('transcribing');
-    } else if (value.trim().length > 0) {
-      setActionButtonMode('send');
-    } else {
-      setActionButtonMode('mic');
-    }
-  }, [isRecording, isTranscribing, value]);
-
-  // Auto-scroll messages to bottom
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
@@ -105,13 +86,11 @@ export function LogConversationBox({
   const handleMicClick = async () => {
     try {
       if (isRecording) {
-        // Stop recording
         const transcript = await stopRecording();
         if (transcript) {
           setValue(prev => prev ? `${prev} ${transcript}` : transcript);
         }
       } else {
-        // Start recording
         await startRecording();
       }
     } catch (error) {
@@ -122,193 +101,250 @@ export function LogConversationBox({
 
   const showSkipButton = messages.length > 0 && isInProgress && !isLoading;
 
+  // Compact input card (no active conversation)
+  if (!isActive) {
+    return (
+      <div className="input-card">
+        {/* Top section: prompt, helper, mic */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
+              What did you work on today?
+            </p>
+            <Textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={handleKeyDown}
+              placeholder={isRecording ? "Listening..." : "Type or tap mic to begin"}
+              className={cn(
+                "min-h-[24px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+                isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
+              )}
+              style={{ color: '#5C6660' }}
+              rows={1}
+            />
+          </div>
+          <button
+            onClick={handleMicClick}
+            className={cn(
+              "btn-mic flex-shrink-0",
+              isRecording && "animate-recording-pulse"
+            )}
+          >
+            <Mic className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="my-3" style={{ borderTop: '1px solid #2A332E' }} />
+
+        {/* Footer: Enter hint + mode toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 text-xs" style={{ color: '#5C6660' }}>
+            Press <kbd className="kbd">Enter</kbd> to start
+          </div>
+          <div
+            className="flex items-center rounded-full p-0.5"
+            style={{ background: '#1C2420' }}
+          >
+            <button
+              onClick={() => setMode('guided')}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+                mode === 'guided'
+                  ? "bg-[#2A332E] text-[#F1F5F3]"
+                  : "text-[#5C6660] hover:text-[#9CA898]"
+              )}
+            >
+              Guided
+            </button>
+            <button
+              onClick={() => setMode('quick')}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+                mode === 'quick'
+                  ? "bg-[#2A332E] text-[#F1F5F3]"
+                  : "text-[#5C6660] hover:text-[#9CA898]"
+              )}
+            >
+              Quick
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Active conversation view
   return (
     <div
-      className={cn(
-        "rounded-md border bg-card transition-all duration-300 ease-out overflow-hidden relative",
-        isFocused && !isActive ? "border-primary ring-1 ring-primary/50" : "border-border",
-        isActive && "border-primary/50",
-        isReviewing && "opacity-50 cursor-not-allowed" // Only apply opacity during review, NOT summarization
-      )}
+      className="input-card relative"
+      style={{
+        borderColor: isFocused ? '#34A853' : '#2A332E',
+        boxShadow: isFocused ? '0 0 0 3px rgba(52, 168, 83, 0.1)' : 'none'
+      }}
     >
-      {/* Messages area - expands when conversation is active */}
-      {isActive && (
-        <div className="animate-expand-in relative">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Conversation
-            </span>
-            {onClear && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                onClick={onClear}
-                title="Clear chat"
-                disabled={isSummarizing}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-
-          {/* Messages */}
-          <div
-            ref={messagesRef}
-            className="space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto px-4 pb-3 custom-scrollbar"
-          >
-            {messages.map((message, index) => {
-              const isLastUserMessage = message.role === "user" && index === messages.length - 2; // Assuming assistant replied last
-              // Actually, if isLoading is true, the last message is user. If not, last is assistant.
-              // But we want to edit the LAST user message regardless of if AI replied.
-              // If AI replied, "undo" removes AI + User.
-              // So we find the last 'user' message index.
-              const lastUserIndex = messages.findLastIndex(m => m.role === 'user');
-              const canEdit = message.role === "user" && index === lastUserIndex && onUndo && !isLoading;
-
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex group relative",
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute -left-8 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                        if (onUndo) {
-                          onUndo();
-                          setValue(message.content);
-                          if (textareaRef.current) textareaRef.current.focus();
-                        }
-                      }}
-                      title="Edit message"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <div
-                    className={cn(
-                      "max-w-[90%] md:max-w-[85%] rounded-lg px-3 py-2 text-sm",
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    )}
-                  >
-                    {message.content}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* AI typing indicator */}
-            {isLoading && isInProgress && (
-              <div className="flex justify-start">
-                <div className="bg-muted text-foreground rounded-lg px-3 py-2 text-sm">
-                  <span className="text-muted-foreground animate-pulse">Thinking...</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Separator before input */}
-          <div className="border-t border-border/50" />
-
-          {/* Summary loading overlay - shown on top of messages during summarization */}
-          {isSummarizing && <SummaryLoadingOverlay />}
-        </div>
-      )}
-
-      {/* Error display - shown when summary generation fails */}
-      {summaryError && (
-        <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/30">
-          <p className="text-sm text-destructive mb-2">{summaryError}</p>
-          {onRetry && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRetry}
-              className="text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium" style={{ color: '#5C6660' }}>
+          Conversation ({exchangeCount}/{maxExchanges})
+        </span>
+        <div className="flex items-center gap-1">
+          {onUndo && messages.length > 0 && !isLoading && (
+            <button
+              onClick={onUndo}
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+              title="Undo"
             >
-              <RefreshCw className="h-4 w-4 mr-1.5" />
+              <RotateCcw className="h-3.5 w-3.5" style={{ color: '#5C6660' }} />
+            </button>
+          )}
+          {onClear && (
+            <button
+              onClick={onClear}
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+              title="Clear"
+              disabled={isSummarizing}
+            >
+              <Trash2 className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={messagesRef}
+        className="space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto mb-3 custom-scrollbar"
+      >
+        {messages.map((message, index) => {
+          const lastUserIndex = messages.findLastIndex(m => m.role === 'user');
+          const canEdit = message.role === "user" && index === lastUserIndex && onUndo && !isLoading;
+
+          return (
+            <div
+              key={index}
+              className={cn(
+                "flex group relative",
+                message.role === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              {canEdit && (
+                <button
+                  className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-[#2A332E] opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => {
+                    if (onUndo) {
+                      onUndo();
+                      setValue(message.content);
+                      if (textareaRef.current) textareaRef.current.focus();
+                    }
+                  }}
+                  title="Edit message"
+                >
+                  <Pencil className="h-3.5 w-3.5" style={{ color: '#5C6660' }} />
+                </button>
+              )}
+              <div
+                className={cn(
+                  "max-w-[90%] md:max-w-[85%] rounded-lg px-3 py-2 text-sm",
+                  message.role === "user"
+                    ? "text-[#0A0F0D]"
+                    : "text-[#F1F5F3]"
+                )}
+                style={{
+                  background: message.role === "user" ? '#34A853' : '#1C2420'
+                }}
+              >
+                {message.content}
+              </div>
+            </div>
+          );
+        })}
+
+        {isLoading && isInProgress && (
+          <div className="flex justify-start">
+            <div
+              className="rounded-lg px-3 py-2 text-sm"
+              style={{ background: '#1C2420', color: '#5C6660' }}
+            >
+              <span className="animate-pulse">Thinking...</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="my-3" style={{ borderTop: '1px solid #2A332E' }} />
+
+      {/* Error display */}
+      {summaryError && (
+        <div
+          className="mb-3 p-3 rounded-lg"
+          style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+        >
+          <p className="text-sm mb-2" style={{ color: '#EF4444' }}>{summaryError}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="text-sm flex items-center gap-1.5"
+              style={{ color: '#EF4444' }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
               Try again
-            </Button>
+            </button>
           )}
         </div>
       )}
 
-      {/* Input area - always visible (except when summarizing) */}
+      {/* Summary loading overlay */}
+      {isSummarizing && <SummaryLoadingOverlay />}
+
+      {/* Input area */}
       {!isSummarizing && (
-        <div className="flex flex-col gap-0">
-          {/* Top: Input area */}
-          <div className="flex items-center gap-2 p-3">
-            <div className="relative flex-1">
-              <Textarea
-                ref={textareaRef}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "Listening..." : messages.length === 0 ? "What did you work on today?" : "Continue your response..."}
-                disabled={inputDisabled}
-                className={cn(
-                  "min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent pl-3 pr-14 py-2 text-base md:text-sm leading-snug focus-visible:ring-0 focus-visible:ring-offset-0",
-                  isRecording && "placeholder:text-destructive placeholder:animate-pulse"
-                )}
-                rows={1}
-              />
+        <div className="flex items-center gap-3">
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={handleKeyDown}
+            placeholder={isRecording ? "Listening..." : "Continue your response..."}
+            disabled={inputDisabled}
+            className={cn(
+              "min-h-[40px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 flex-1",
+              isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
+            )}
+            style={{ color: '#F1F5F3' }}
+            rows={1}
+          />
+          <button
+            onClick={handleMicClick}
+            disabled={inputDisabled}
+            className={cn(
+              "btn-mic flex-shrink-0",
+              isRecording && "animate-recording-pulse"
+            )}
+          >
+            <Mic className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
-              {/* Action button (mic/send) */}
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <ActionButton
-                  mode={actionButtonMode}
-                  onMicClick={handleMicClick}
-                  onSendClick={handleSubmit}
-                  disabled={inputDisabled}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom: Action bar */}
-          {(showSkipButton || (onUndo && messages.length > 0 && !isLoading)) && (
-            <div className="border-t border-border/50 bg-muted/20 px-3 py-2">
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                {onUndo && messages.length > 0 && !isLoading && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onUndo}
-                    className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
-                    title="Undo last message (removes your last answer and AI's response)"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Undo
-                  </Button>
-                )}
-                {showSkipButton && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onSkipToSummary}
-                    className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
-                    title="End the conversation and generate a summary"
-                  >
-                    <FastForward className="h-4 w-4 mr-2" />
-                    End conversation
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+      {/* Footer actions */}
+      {showSkipButton && (
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid #2A332E' }}>
+          <button
+            onClick={onSkipToSummary}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all duration-200"
+            style={{ background: '#1C2420', color: '#9CA898' }}
+          >
+            <FastForward className="h-3.5 w-3.5" />
+            End conversation & generate summary
+          </button>
         </div>
       )}
     </div>

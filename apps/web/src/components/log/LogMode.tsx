@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { useLogConversation } from "@/hooks/useLogConversation";
 import { useWorkEntries } from "@/hooks/useWorkEntries";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 
 export function LogMode() {
   const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const {
     messages,
@@ -47,8 +49,17 @@ export function LogMode() {
     if (categoryFilter.length > 0) {
       result = result.filter(e => e.category && categoryFilter.includes(e.category));
     }
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(e =>
+        e.redacted_summary?.toLowerCase().includes(query) ||
+        e.skills?.some(s => s.toLowerCase().includes(query)) ||
+        e.achievements?.some(a => a.toLowerCase().includes(query))
+      );
+    }
     return result;
-  }, [entries, dateRange, categoryFilter]);
+  }, [entries, dateRange, categoryFilter, searchQuery]);
 
   const availableCategories = useMemo(() => {
     const categories = entries
@@ -98,16 +109,25 @@ export function LogMode() {
 
       {/* History section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-mono text-sm text-muted-foreground">
-            // log history
-          </h3>
-          {filteredEntries.length !== entries.length && entries.length > 0 && (
-            <span className="font-mono text-xs text-muted-foreground">
-              {filteredEntries.length} of {entries.length}
-            </span>
-          )}
+        {/* Section header */}
+        <h3 className="section-title">Recent Logs</h3>
+
+        {/* Search input */}
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
+            style={{ color: '#5C6660' }}
+          />
+          <input
+            type="text"
+            placeholder="Search logs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
         </div>
+
+        {/* Filters */}
         <LogFilters
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
@@ -115,6 +135,8 @@ export function LogMode() {
           onCategoryFilterChange={setCategoryFilter}
           availableCategories={availableCategories}
         />
+
+        {/* History list */}
         <LogHistory
           entries={filteredEntries}
           isLoading={isLoadingEntries}

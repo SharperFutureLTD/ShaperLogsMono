@@ -1,23 +1,28 @@
 'use client'
 
 import { useState, useMemo } from "react";
-import { Upload, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, Target } from "lucide-react";
 import { useTargets } from "@/hooks/useTargets";
+import { useWorkEntries } from "@/hooks/useWorkEntries";
 import { TargetList } from "@/components/targets/TargetList";
 import { TargetUpload } from "@/components/targets/TargetUpload";
 import { TargetForm } from "@/components/targets/TargetForm";
-import { ClearAllDialog } from "@/components/targets/ClearAllDialog";
 import { TargetFilters, type TargetTypeFilter, type TargetStatusFilter } from "@/components/targets/TargetFilters";
-import type { Target } from "@/types/targets";
+import { StatsCards } from "@/components/progress/StatsCards";
+import { ActivityChart } from "@/components/progress/ActivityChart";
+import { TopSkillsSection } from "@/components/progress/TopSkillsSection";
+import type { Target as TargetType } from "@/types/targets";
+
+type PeriodFilter = 'week' | 'month' | 'year';
 
 export function TargetsMode() {
   const { targets, loading: isLoading, refetch: fetchTargets, deleteTarget, archiveTarget, updateTarget } = useTargets();
+  const { entries } = useWorkEntries();
   const [showUpload, setShowUpload] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
 
-  // Filter state
+  // Filter state for targets
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TargetTypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<TargetStatusFilter>('all');
@@ -28,16 +33,8 @@ export function TargetsMode() {
     fetchTargets();
   };
 
-  const handleClearAll = async () => {
-    // Delete all targets one by one
-    for (const target of targets) {
-      await deleteTarget(target.id);
-    }
-    fetchTargets();
-  };
-
   // Calculate status for a target
-  const getTargetStatus = (target: Target): 'on_track' | 'overdue' | 'completed' => {
+  const getTargetStatus = (target: TargetType): 'on_track' | 'overdue' | 'completed' => {
     const hasNumericTarget = target.target_value !== null && target.target_value > 0;
     const progress = hasNumericTarget
       ? Math.min((target.current_value / target.target_value!) * 100, 100)
@@ -51,39 +48,91 @@ export function TargetsMode() {
   // Filtered targets
   const filteredTargets = useMemo(() => {
     return targets.filter(target => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesName = target.name.toLowerCase().includes(query);
         const matchesDescription = target.description?.toLowerCase().includes(query);
         if (!matchesName && !matchesDescription) return false;
       }
-
-      // Type filter
       if (typeFilter !== 'all' && target.type !== typeFilter) return false;
-
-      // Status filter
       if (statusFilter !== 'all') {
         const status = getTargetStatus(target);
         if (status !== statusFilter) return false;
       }
-
       return true;
     });
   }, [targets, searchQuery, typeFilter, statusFilter]);
 
-  // Calculate stats from filtered targets for summary
-  const stats = useMemo(() => ({
-    total: filteredTargets.length,
-    withEvidence: filteredTargets.filter(t => t.current_value && t.current_value >= 1).length,
-    overdue: filteredTargets.filter(t => getTargetStatus(t) === 'overdue').length,
-  }), [filteredTargets]);
+  // Calculate stats based on period
+  const stats = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
 
-  // Adapter for onUpdate to match TargetList's expected signature
-  const handleUpdate = async (targetId: string, updates: Partial<Target>): Promise<Target | null> => {
+    switch (periodFilter) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    const periodEntries = entries.filter(e => new Date(e.created_at) >= startDate);
+    const allSkills = periodEntries.flatMap(e => e.skills || []);
+    const uniqueSkills = new Set(allSkills);
+
+    return {
+      logsCount: periodEntries.length,
+      logsGrowth: 12, // Placeholder - would calculate from previous period
+      skillsCount: uniqueSkills.size,
+      newSkills: 3, // Placeholder
+      currentStreak: 5, // Placeholder - would calculate from entries
+      bestStreak: 14, // Placeholder
+      hoursLogged: 42, // Placeholder
+      hoursGrowth: 8, // Placeholder
+    };
+  }, [entries, periodFilter]);
+
+  // Activity chart data
+  const activityData = useMemo(() => {
+    const data: { date: string; count: number }[] = [];
+    const entriesByDate = new Map<string, number>();
+
+    entries.forEach(entry => {
+      const date = entry.created_at.split('T')[0];
+      entriesByDate.set(date, (entriesByDate.get(date) || 0) + 1);
+    });
+
+    entriesByDate.forEach((count, date) => {
+      data.push({ date, count });
+    });
+
+    return data;
+  }, [entries]);
+
+  // Top skills data
+  const topSkills = useMemo(() => {
+    const skillCounts = new Map<string, number>();
+
+    entries.forEach(entry => {
+      (entry.skills || []).forEach(skill => {
+        skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+      });
+    });
+
+    return Array.from(skillCounts.entries())
+      .map(([name, count]) => ({ name, count, growth: Math.random() > 0.5 ? 1 : 0 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [entries]);
+
+  // Adapter for onUpdate
+  const handleUpdate = async (targetId: string, updates: Partial<TargetType>): Promise<TargetType | null> => {
     const success = await updateTarget(targetId, updates);
     if (success) {
-      // Return the updated target from the list
       const updatedTarget = targets.find(t => t.id === targetId);
       return updatedTarget ? { ...updatedTarget, ...updates } : null;
     }
@@ -92,130 +141,86 @@ export function TargetsMode() {
 
   return (
     <div className="space-y-6">
-      {/* Actions */}
-      <div className="flex gap-2 justify-center flex-wrap">
-        <Button
-          variant={showUpload ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            setShowUpload(!showUpload);
-            setShowForm(false);
-          }}
-        >
-          <Upload className="h-4 w-4 mr-1.5" />
-          Upload document
-        </Button>
-        <Button
-          variant={showForm ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            setShowForm(!showForm);
-            setShowUpload(false);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add manually
-        </Button>
-        {targets.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowClearAllDialog(true)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      {/* Period filter */}
+      <div className="flex items-center justify-end gap-2">
+        {(['week', 'month', 'year'] as const).map((period) => (
+          <button
+            key={period}
+            onClick={() => setPeriodFilter(period)}
+            className={`filter-pill ${periodFilter === period ? 'active' : ''}`}
           >
-            <Trash2 className="h-4 w-4 mr-1.5" />
-            Clear all
-          </Button>
-        )}
+            {period.charAt(0).toUpperCase() + period.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {/* Upload Section */}
-      {showUpload && (
-        <div>
-          <TargetUpload onComplete={handleComplete} />
-        </div>
-      )}
+      {/* Stats cards */}
+      <StatsCards {...stats} />
 
-      {/* Manual Form */}
-      {showForm && (
-        <div>
-          <TargetForm onComplete={handleComplete} />
-        </div>
-      )}
+      {/* Activity chart */}
+      <ActivityChart data={activityData} />
 
-      {/* Filters */}
-      <TargetFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-      />
+      {/* Top Skills Section */}
+      <TopSkillsSection skills={topSkills} />
 
-      {/* Target List */}
+      {/* Active Targets Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-foreground">
-            Your Targets
-          </h2>
-          {filteredTargets.length !== targets.length && (
-            <span className="text-xs text-muted-foreground">
-              Showing {filteredTargets.length} of {targets.length}
-            </span>
-          )}
+          <h3 className="section-title">Active Targets</h3>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setShowUpload(false);
+            }}
+            className="btn-primary text-xs flex items-center gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Target
+          </button>
         </div>
-        <TargetList
-          targets={filteredTargets}
-          isLoading={isLoading}
-          onDelete={deleteTarget}
-          onArchive={archiveTarget}
-          onUpdate={handleUpdate}
-        />
-      </div>
 
-      {/* Summary Stats */}
-      {targets.length > 0 && (
-        <div className="p-4 border border-border rounded-lg bg-card">
-          <h3 className="text-xs font-medium text-muted-foreground mb-3">
-            Summary
-          </h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.total}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total
-              </div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-primary">
-                {stats.withEvidence}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                With evidence
-              </div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-destructive">
-                {stats.overdue}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Overdue
-              </div>
-            </div>
+        {/* Upload Section */}
+        {showUpload && (
+          <div>
+            <TargetUpload onComplete={handleComplete} />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Clear All Confirmation Dialog */}
-      <ClearAllDialog
-        open={showClearAllDialog}
-        onOpenChange={setShowClearAllDialog}
-        onConfirm={handleClearAll}
-        targetCount={targets.length}
-      />
+        {/* Manual Form */}
+        {showForm && (
+          <div>
+            <TargetForm onComplete={handleComplete} />
+          </div>
+        )}
+
+        {/* Filters */}
+        <TargetFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+        />
+
+        {/* Target List or Empty State */}
+        {targets.length === 0 ? (
+          <div className="empty-card">
+            <Target className="h-6 w-6 mx-auto mb-2" style={{ color: '#5C6660' }} />
+            <p className="text-sm" style={{ color: '#5C6660' }}>
+              No targets yet. Add a target to start tracking your progress.
+            </p>
+          </div>
+        ) : (
+          <TargetList
+            targets={filteredTargets}
+            isLoading={isLoading}
+            onDelete={deleteTarget}
+            onArchive={archiveTarget}
+            onUpdate={handleUpdate}
+          />
+        )}
+      </div>
     </div>
   );
 }

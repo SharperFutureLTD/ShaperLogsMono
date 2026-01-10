@@ -1,24 +1,9 @@
 'use client'
 
 import { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { Copy, Check, Trash2, ChevronDown, ChevronUp, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Copy, Trash2, Download, ChevronDown } from 'lucide-react';
 import { GeneratedContent, GENERATE_TYPE_OPTIONS } from '@/types/generate';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 
 interface GenerateHistoryItemProps {
   item: GeneratedContent;
@@ -26,19 +11,46 @@ interface GenerateHistoryItemProps {
 }
 
 export function GenerateHistoryItem({ item, onDelete }: GenerateHistoryItemProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const typeLabel = GENERATE_TYPE_OPTIONS.find(o => o.type === item.type)?.label || item.type;
-  const previewLength = 150;
-  const needsExpand = item.content.length > previewLength;
+  const previewLength = 200;
+  const isLongContent = item.content.length > previewLength;
+
+  // Format relative time
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+
+    if (diffDays === 0) {
+      if (diffHours < 1) return `Just now`;
+      return `Today at ${timeStr}`;
+    } else if (diffDays === 1) {
+      return `Yesterday at ${timeStr}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago at ${timeStr}`;
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+      }) + ` at ${timeStr}`;
+    }
+  };
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(item.content);
-      setCopied(true);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
+      toast.success('Copied to clipboard');
     } catch {
       toast.error('Failed to copy');
     }
@@ -55,94 +67,132 @@ export function GenerateHistoryItem({ item, onDelete }: GenerateHistoryItemProps
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Downloaded successfully!');
+      toast.success('Downloaded');
     } catch {
       toast.error('Failed to download');
     }
   };
 
+  const handleDelete = () => {
+    onDelete(item.id);
+    setShowConfirmDelete(false);
+  };
+
+  const handleCardClick = () => {
+    if (isLongContent) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   return (
-    <Card className="transition-colors hover:bg-accent/50">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <Badge variant="secondary" className="font-mono text-xs">
-              {typeLabel}
-            </Badge>
-            <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-            </p>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCopy}
-              className="h-8 w-8"
+    <div
+      className="entry-card group"
+      onClick={handleCardClick}
+    >
+      {/* Top row: timestamp and type badge */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs" style={{ color: '#5C6660' }}>
+          {formatRelativeTime(item.created_at)}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="count-badge">{typeLabel}</span>
+          {/* Hover actions */}
+          <div className="hover-actions flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy();
+              }}
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+              title="Copy"
             >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownload}
-              className="h-8 w-8"
+              <Copy className="h-3.5 w-3.5" style={{ color: '#5C6660' }} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload();
+              }}
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+              title="Download"
             >
-              <Download className="h-4 w-4" />
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete generated content?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(item.id)}>
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              <Download className="h-3.5 w-3.5" style={{ color: '#5C6660' }} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowConfirmDelete(true);
+              }}
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+            </button>
           </div>
+          {/* Chevron indicator - only show if content is long */}
+          {isLongContent && (
+            <ChevronDown
+              className={`expand-chevron h-4 w-4 ${isExpanded ? 'expanded' : ''}`}
+              style={{ color: '#5C6660' }}
+            />
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-sm text-muted-foreground mb-2 italic">
-          "{item.prompt}"
-        </p>
-        <div className="text-sm whitespace-pre-wrap">
-          {expanded ? item.content : item.content.slice(0, previewLength)}
-          {!expanded && needsExpand && '...'}
-        </div>
-        {needsExpand && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded(!expanded)}
-            className="mt-2 gap-1 text-xs text-muted-foreground"
+      </div>
+
+      {/* Prompt in green italics */}
+      <p className="text-sm italic mb-2" style={{ color: '#34A853' }}>
+        "{item.prompt}"
+      </p>
+
+      {/* Content - show preview or full based on expanded state */}
+      {isLongContent ? (
+        isExpanded ? (
+          <p
+            className="text-sm leading-relaxed whitespace-pre-wrap"
+            style={{ color: '#9CA898' }}
           >
-            {expanded ? (
-              <>
-                <ChevronUp className="h-3 w-3" />
-                Show less
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3 w-3" />
-                Show more
-              </>
-            )}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+            {item.content}
+          </p>
+        ) : (
+          <p className="text-sm leading-relaxed" style={{ color: '#9CA898' }}>
+            {item.content.slice(0, previewLength)}...
+            <span className="text-xs ml-1" style={{ color: '#5C6660' }}>
+              (click to expand)
+            </span>
+          </p>
+        )
+      ) : (
+        <p className="text-sm leading-relaxed" style={{ color: '#9CA898' }}>
+          {item.content}
+        </p>
+      )}
+
+      {/* Delete confirmation */}
+      {showConfirmDelete && (
+        <div
+          className="mt-3 p-3 rounded-lg flex items-center justify-between"
+          style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="text-sm" style={{ color: '#EF4444' }}>Delete this content?</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowConfirmDelete(false)}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ color: '#9CA898' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ background: '#EF4444', color: '#fff' }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

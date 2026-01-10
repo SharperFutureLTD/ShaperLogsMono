@@ -55,12 +55,10 @@ export function GenerateTypeSelector({
   const handleSavePrompt = () => {
     if (!newPromptName.trim() || !onSaveCurrentPrompt) return;
 
-    // Close dialog immediately - optimistic update handles the UI
     const name = newPromptName.trim();
     setNewPromptName('');
     setSaveDialogOpen(false);
 
-    // Fire and forget - errors are handled by the mutation's rollback
     onSaveCurrentPrompt(name);
   };
 
@@ -76,97 +74,118 @@ export function GenerateTypeSelector({
   const canSavePrompt = currentPrompt.trim().length > 0 && onSaveCurrentPrompt;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Pre-made prompts section */}
-      <div className="space-y-2">
-        <label className="font-mono text-xs text-muted-foreground">
-          // pre-made prompts
-        </label>
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold" style={{ color: '#F1F5F3' }}>
+          Pre-made Prompts
+        </h3>
         <div className="flex flex-wrap gap-2">
           {contentTypes.map((option) => (
             <button
               key={option.type}
               onClick={() => onSelect(option.type, option.suggestedPrompt)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                "border",
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 selectedType === option.type && !selectedSavedPromptId
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                  ? "text-[#0A0F0D]"
+                  : "hover:border-[#3A443E]"
               )}
+              style={{
+                background: selectedType === option.type && !selectedSavedPromptId
+                  ? '#34A853'
+                  : '#1C2420',
+                border: `1px solid ${selectedType === option.type && !selectedSavedPromptId ? '#34A853' : '#2A332E'}`,
+                color: selectedType === option.type && !selectedSavedPromptId ? '#0A0F0D' : '#F1F5F3'
+              }}
             >
               {option.label}
             </button>
           ))}
         </div>
         {selectedType && selectedType !== 'saved' && !selectedSavedPromptId && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: '#5C6660' }}>
             {contentTypes.find(o => o.type === selectedType)?.description}
           </p>
         )}
       </div>
 
       {/* Saved prompts section */}
-      <div className="space-y-2">
-        <label className="font-mono text-xs text-muted-foreground">
-          // my saved prompts
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {savedPrompts.map((prompt) => (
-            <div
-              key={prompt.id}
-              className={cn(
-                "relative group flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border cursor-pointer",
-                selectedSavedPromptId === prompt.id
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground"
-              )}
-              onClick={() => onSelectSavedPrompt?.(prompt)}
-            >
-              <span>{prompt.name}</span>
-              <button
-                onClick={(e) => handleDeletePrompt(e, prompt.id)}
-                disabled={isDeletingSavedPrompt && deletingId === prompt.id}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold" style={{ color: '#F1F5F3' }}>
+          My Saved Prompts
+        </h3>
+
+        {savedPrompts.length === 0 && !canSavePrompt ? (
+          <div
+            className="rounded-lg p-4 text-center"
+            style={{
+              background: '#141A17',
+              border: '1px dashed #2A332E'
+            }}
+          >
+            <p className="text-sm" style={{ color: '#5C6660' }}>
+              No saved prompts yet. Generate something below, then save it for reuse.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {savedPrompts.map((prompt) => (
+              <div
+                key={prompt.id}
                 className={cn(
-                  "ml-1 p-0.5 rounded hover:bg-destructive/20 transition-colors",
-                  selectedSavedPromptId === prompt.id
-                    ? "text-primary-foreground/70 hover:text-primary-foreground"
-                    : "text-muted-foreground hover:text-destructive"
+                  "relative group flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer"
                 )}
+                style={{
+                  background: selectedSavedPromptId === prompt.id ? '#34A853' : '#1C2420',
+                  border: `1px solid ${selectedSavedPromptId === prompt.id ? '#34A853' : '#2A332E'}`,
+                  color: selectedSavedPromptId === prompt.id ? '#0A0F0D' : '#F1F5F3'
+                }}
+                onClick={() => onSelectSavedPrompt?.(prompt)}
               >
-                {isDeletingSavedPrompt && deletingId === prompt.id ? (
+                <span>{prompt.name}</span>
+                <button
+                  onClick={(e) => handleDeletePrompt(e, prompt.id)}
+                  disabled={isDeletingSavedPrompt && deletingId === prompt.id}
+                  className="ml-1 p-0.5 rounded transition-colors hover:bg-black/10"
+                  style={{
+                    color: selectedSavedPromptId === prompt.id ? '#0A0F0D' : '#5C6660'
+                  }}
+                >
+                  {isDeletingSavedPrompt && deletingId === prompt.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
+                </button>
+              </div>
+            ))}
+
+            {/* Save current prompt button */}
+            {canSavePrompt && (
+              <button
+                onClick={() => setSaveDialogOpen(true)}
+                disabled={isCreatingSavedPrompt}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                style={{
+                  background: 'transparent',
+                  border: '1px dashed #2A332E',
+                  color: '#5C6660'
+                }}
+              >
+                {isCreatingSavedPrompt ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <X className="h-3 w-3" />
+                  <Plus className="h-3 w-3" />
                 )}
+                <span>Save current</span>
               </button>
-            </div>
-          ))}
+            )}
+          </div>
+        )}
 
-          {/* Save current prompt button */}
-          {canSavePrompt && (
-            <button
-              onClick={() => setSaveDialogOpen(true)}
-              disabled={isCreatingSavedPrompt}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-dashed border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:border-accent-foreground"
-            >
-              {isCreatingSavedPrompt ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Plus className="h-3 w-3" />
-              )}
-              <span>Save current</span>
-            </button>
-          )}
-
-          {savedPrompts.length === 0 && !canSavePrompt && (
-            <p className="text-xs text-muted-foreground italic">
-              Type a prompt below, then save it here for reuse
-            </p>
-          )}
-        </div>
         {selectedSavedPromptId && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: '#5C6660' }}>
             Using saved prompt
           </p>
         )}
@@ -174,16 +193,24 @@ export function GenerateTypeSelector({
 
       {/* Save prompt dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent
+          className="sm:max-w-[400px]"
+          style={{ background: '#141A17', border: '1px solid #2A332E' }}
+        >
           <DialogHeader>
-            <DialogTitle className="font-mono">Save Prompt</DialogTitle>
+            <DialogTitle style={{ color: '#F1F5F3' }}>Save Prompt</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Input
               placeholder="Name your prompt..."
               value={newPromptName}
               onChange={(e) => setNewPromptName(e.target.value)}
-              className="font-mono text-sm"
+              className="text-sm"
+              style={{
+                background: '#1C2420',
+                border: '1px solid #2A332E',
+                color: '#F1F5F3'
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleSavePrompt();
@@ -191,7 +218,7 @@ export function GenerateTypeSelector({
               }}
               autoFocus
             />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs mt-2" style={{ color: '#5C6660' }}>
               This will save your current prompt for easy reuse.
             </p>
           </div>
@@ -199,14 +226,19 @@ export function GenerateTypeSelector({
             <Button
               variant="outline"
               onClick={() => setSaveDialogOpen(false)}
-              className="font-mono text-xs"
+              className="text-xs"
+              style={{
+                background: 'transparent',
+                border: '1px solid #2A332E',
+                color: '#9CA898'
+              }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSavePrompt}
               disabled={!newPromptName.trim() || isCreatingSavedPrompt}
-              className="font-mono text-xs"
+              className="text-xs btn-primary"
             >
               {isCreatingSavedPrompt ? (
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />

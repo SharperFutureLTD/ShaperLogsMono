@@ -1,11 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Target, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Target } from 'lucide-react'
 import { useTargets } from '@/hooks/useTargets'
 import type { Target as TargetType } from '@/types/targets'
 
@@ -14,43 +10,39 @@ interface ActiveTargetsPreviewProps {
   limit?: number
 }
 
-function getTargetStatus(target: TargetType): 'on_track' | 'overdue' | 'completed' {
+function getTargetStatus(target: TargetType): 'on_track' | 'behind' | 'completed' {
   const hasNumericTarget = target.target_value !== null && target.target_value > 0
   const progress = hasNumericTarget
     ? Math.min((target.current_value / target.target_value!) * 100, 100)
     : null
 
   if (progress !== null && progress >= 100) return 'completed'
-  if (target.deadline && new Date(target.deadline) < new Date()) return 'overdue'
+  if (target.deadline && new Date(target.deadline) < new Date()) return 'behind'
+
+  // Check if behind schedule based on progress vs time elapsed
+  if (target.deadline && target.created_at && hasNumericTarget) {
+    const totalTime = new Date(target.deadline).getTime() - new Date(target.created_at).getTime()
+    const elapsedTime = Date.now() - new Date(target.created_at).getTime()
+    const expectedProgress = (elapsedTime / totalTime) * 100
+    if (progress !== null && progress < expectedProgress * 0.8) return 'behind'
+  }
+
   return 'on_track'
 }
 
-function getStatusBadge(status: 'on_track' | 'overdue' | 'completed') {
-  switch (status) {
-    case 'completed':
-      return (
-        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-          Done
-        </Badge>
-      )
-    case 'overdue':
-      return (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
-          <AlertCircle className="h-3 w-3 mr-1" />
-          Overdue
-        </Badge>
-      )
-    default:
-      return (
-        <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
-          On track
-        </Badge>
-      )
-  }
+function formatDeadline(deadline: string): string {
+  const date = new Date(deadline)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function ActiveTargetsPreview({ onViewAll, limit = 3 }: ActiveTargetsPreviewProps) {
+function getDaysLeft(deadline: string): number {
+  const now = new Date()
+  const target = new Date(deadline)
+  const diff = target.getTime() - now.getTime()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+export function ActiveTargetsPreview({ onViewAll, limit = 2 }: ActiveTargetsPreviewProps) {
   const { targets, loading } = useTargets()
 
   const activeTargets = useMemo(() => {
@@ -62,92 +54,103 @@ export function ActiveTargetsPreview({ onViewAll, limit = 3 }: ActiveTargetsPrev
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 w-24 bg-muted rounded" />
-            <div className="space-y-2">
-              <div className="h-16 bg-muted rounded" />
-              <div className="h-16 bg-muted rounded" />
-            </div>
+      <div>
+        <div className="section-header">
+          <span className="section-title-muted">TARGETS</span>
+          <button className="section-action">All →</button>
+        </div>
+        <div className="space-y-2">
+          <div className="target-card animate-pulse">
+            <div className="h-4 w-24 bg-[#2A332E] rounded mb-2" />
+            <div className="h-2 w-full bg-[#2A332E] rounded" />
           </div>
-        </CardContent>
-      </Card>
+          <div className="target-card animate-pulse">
+            <div className="h-4 w-24 bg-[#2A332E] rounded mb-2" />
+            <div className="h-2 w-full bg-[#2A332E] rounded" />
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Active Targets
-          </h3>
-          {onViewAll && targets && targets.length > limit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onViewAll}
-              className="text-xs text-primary hover:text-primary h-auto p-0"
-            >
-              View all
-              <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          )}
+    <div>
+      <div className="section-header">
+        <span className="section-title-muted">TARGETS</span>
+        {onViewAll && (
+          <button onClick={onViewAll} className="section-action">
+            All →
+          </button>
+        )}
+      </div>
+
+      {activeTargets.length === 0 ? (
+        <div className="empty-card">
+          <Target className="h-6 w-6 mx-auto mb-2" style={{ color: '#5C6660' }} />
+          <p className="text-xs" style={{ color: '#5C6660' }}>
+            No active targets
+          </p>
         </div>
+      ) : (
+        <div className="space-y-2">
+          {activeTargets.map((target) => {
+            const status = getTargetStatus(target)
+            const hasNumericTarget = target.target_value !== null && target.target_value > 0
+            const progress = hasNumericTarget
+              ? Math.min(Math.round((target.current_value / target.target_value!) * 100), 100)
+              : 0
 
-        {activeTargets.length === 0 ? (
-          <div className="text-center py-6">
-            <Target className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No active targets yet
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Set goals to track your progress
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {activeTargets.map((target) => {
-              const status = getTargetStatus(target)
-              const hasNumericTarget = target.target_value !== null && target.target_value > 0
-              const progress = hasNumericTarget
-                ? Math.min(Math.round((target.current_value / target.target_value!) * 100), 100)
-                : null
+            const isWarning = status === 'behind'
+            const progressColor = isWarning ? '#F59E0B' : '#34A853'
+            const badgeBg = isWarning ? 'rgba(245, 158, 11, 0.2)' : 'rgba(52, 168, 83, 0.2)'
+            const badgeColor = isWarning ? '#F59E0B' : '#34A853'
+            const badgeText = isWarning ? 'Behind' : 'On Track'
 
-              return (
-                <div
-                  key={target.id}
-                  className="p-3 rounded-lg bg-muted/50 border border-border/50"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="text-sm font-medium text-foreground line-clamp-1">
-                      {target.name}
-                    </h4>
-                    {getStatusBadge(status)}
+            return (
+              <div
+                key={target.id}
+                className="rounded-lg p-3"
+                style={{ background: '#1C2420', border: '1px solid #2A332E' }}
+              >
+                {/* Name and status */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium truncate" style={{ color: '#F1F5F3' }}>
+                    {target.name}
+                  </span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded font-medium flex-shrink-0"
+                    style={{ background: badgeBg, color: badgeColor }}
+                  >
+                    {badgeText}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                {hasNumericTarget && (
+                  <div className="progress-bar mb-1.5">
+                    <div
+                      className="progress-bar-fill"
+                      style={{ width: `${progress}%`, background: progressColor }}
+                    />
                   </div>
+                )}
 
-                  {progress !== null && (
-                    <div className="space-y-1">
-                      <Progress value={progress} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{target.current_value} / {target.target_value} {target.unit || ''}</span>
-                        <span>{progress}%</span>
-                      </div>
-                    </div>
-                  )}
-
+                {/* Stats row */}
+                <div className="flex justify-between items-center text-xs" style={{ color: '#5C6660' }}>
+                  <span>
+                    {target.current_value} / {target.target_value} {target.unit || 'hrs'}
+                  </span>
                   {target.deadline && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Due {new Date(target.deadline).toLocaleDateString()}
-                    </p>
+                    <span>
+                      {formatDeadline(target.deadline)}
+                    </span>
                   )}
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }

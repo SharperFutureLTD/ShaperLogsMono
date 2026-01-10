@@ -14,8 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "Plus Jakarta Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
       },
       fontSize: {
         // Responsive heading scales for mobile optimization

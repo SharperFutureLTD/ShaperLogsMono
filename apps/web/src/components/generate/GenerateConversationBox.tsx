@@ -1,13 +1,11 @@
 'use client'
 
 import { KeyboardEvent, useRef, useState, useEffect } from 'react';
-import { Sparkles, Paperclip, FileText, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles, Paperclip, FileText, X, Mic } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
-import { ActionButton } from '@/components/log/ActionButton';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 
 // File type validation configuration
@@ -32,8 +30,6 @@ interface GenerateConversationBoxProps {
   onContextDocumentChange?: (content: string | null) => void;
 }
 
-type ActionButtonMode = 'mic' | 'recording' | 'transcribing' | 'send';
-
 export function GenerateConversationBox({
   prompt,
   isGenerating,
@@ -47,7 +43,6 @@ export function GenerateConversationBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [actionButtonMode, setActionButtonMode] = useState<ActionButtonMode>('mic');
   const [isFocused, setIsFocused] = useState(false);
 
   const {
@@ -56,19 +51,6 @@ export function GenerateConversationBox({
     startRecording,
     stopRecording
   } = useVoiceRecording();
-
-  // Manage action button mode transitions
-  useEffect(() => {
-    if (isRecording) {
-      setActionButtonMode('recording');
-    } else if (isTranscribing) {
-      setActionButtonMode('transcribing');
-    } else if (prompt.trim().length > 0) {
-      setActionButtonMode('send');
-    } else {
-      setActionButtonMode('mic');
-    }
-  }, [isRecording, isTranscribing, prompt]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -91,19 +73,17 @@ export function GenerateConversationBox({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const fileType = FILE_TYPES[file.type as keyof typeof FILE_TYPES];
     if (!fileType) {
       toast.error(`Unsupported file type: ${file.type}. Please use PDF, Word, Excel, CSV, or Text files.`);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
       return;
     }
 
-    // Validate file size
     const maxSizeBytes = fileType.max * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       toast.error(`${fileType.label} files must be under ${fileType.max}MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
       return;
     }
 
@@ -122,7 +102,6 @@ export function GenerateConversationBox({
       toast.error('Failed to upload document');
     } finally {
       setIsUploading(false);
-      // Reset input so same file can be selected again if needed
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -153,18 +132,19 @@ export function GenerateConversationBox({
   };
 
   return (
-    <div className={cn(
-      "rounded-md border bg-card transition-all duration-300 ease-out overflow-hidden",
-      isFocused ? "border-primary ring-1 ring-primary/50" : "border-border"
-    )}>
-      {/* Input area */}
-      <div className="p-3">
-        <div className="relative flex-1">
-          {/* Terminal prompt indicator */}
-          <div className="absolute left-3 top-1/2 -translate-y-[52%] text-primary font-mono text-sm z-10">
-            {">"}
-          </div>
-
+    <div
+      className="input-card"
+      style={{
+        borderColor: isFocused ? '#34A853' : '#2A332E',
+        boxShadow: isFocused ? '0 0 0 3px rgba(52, 168, 83, 0.1)' : 'none'
+      }}
+    >
+      {/* Top section: prompt, helper, mic */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
+            Describe what you'd like to generate
+          </p>
           <Textarea
             ref={textareaRef}
             value={prompt}
@@ -172,58 +152,57 @@ export function GenerateConversationBox({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? "recording" : "Describe what you'd like to generate..."}
+            placeholder={isRecording ? "Listening..." : "Type or tap mic to begin"}
             disabled={isGenerating || isTranscribing}
             className={cn(
-              "min-h-[48px] max-h-[200px] resize-none pl-9 pr-14 py-2 font-mono text-base md:text-sm leading-snug border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
-              isRecording && "placeholder:text-destructive placeholder:animate-pulse"
+              "min-h-[24px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+              isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
             )}
+            style={{ color: '#5C6660' }}
+            rows={1}
           />
-
-          {/* Blinking cursor when focused and empty */}
-          {isFocused && !prompt && !isRecording && (
-            <span className="absolute left-9 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground cursor-blink">
-              _
-            </span>
-          )}
-
-          {/* Action button (mic/send) */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            <ActionButton
-              mode={actionButtonMode}
-              onMicClick={handleMicClick}
-              onSendClick={onGenerate}
-              disabled={isGenerating || isUploading}
-            />
-          </div>
         </div>
+        <button
+          onClick={handleMicClick}
+          disabled={isGenerating || isTranscribing}
+          className={cn(
+            "btn-mic flex-shrink-0",
+            isRecording && "animate-recording-pulse"
+          )}
+        >
+          <Mic className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* Action bar - below input */}
-      <div className="border-t border-border/50 bg-muted/20 px-3 py-2">
-        <div className="flex items-center justify-center gap-3 flex-wrap">
+      {/* Divider */}
+      <div className="my-3" style={{ borderTop: '1px solid #2A332E' }} />
+
+      {/* Footer */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
           {/* Work entries context indicator */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3" />
-            <span>
-              {workEntriesCount} {workEntriesCount === 1 ? 'entry' : 'entries'}
-            </span>
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: '#5C6660' }}>
+            <Sparkles className="h-3 w-3" style={{ color: '#34A853' }} />
+            <span>{workEntriesCount} {workEntriesCount === 1 ? 'entry' : 'entries'}</span>
           </div>
 
-          {/* Separator */}
-          <div className="h-4 w-px bg-border" />
-
-          {/* File attachment button */}
+          {/* File attachment */}
           {contextDocument ? (
-            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs border border-border">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              <span className="truncate max-w-[200px] font-medium">{fileName || 'Context Document'}</span>
+            <div
+              className="flex items-center gap-2 px-2 py-1 rounded text-xs"
+              style={{ background: '#1C2420', border: '1px solid #2A332E' }}
+            >
+              <FileText className="h-3.5 w-3.5" style={{ color: '#34A853' }} />
+              <span className="truncate max-w-[150px]" style={{ color: '#F1F5F3' }}>
+                {fileName || 'Context Document'}
+              </span>
               <button
                 onClick={handleRemoveFile}
-                className="hover:text-destructive transition-colors ml-1"
+                className="transition-colors"
+                style={{ color: '#5C6660' }}
                 disabled={isGenerating}
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 hover:text-[#EF4444]" />
               </button>
             </div>
           ) : (
@@ -236,18 +215,21 @@ export function GenerateConversationBox({
                 onChange={handleFileSelect}
                 disabled={isUploading || isGenerating}
               />
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading || isGenerating}
-                className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                className="flex items-center gap-1.5 text-xs transition-colors"
+                style={{ color: '#5C6660' }}
               >
-                <Paperclip className="h-4 w-4 mr-2" />
-                {isUploading ? 'Uploading...' : 'Attach Context'}
-              </Button>
+                <Paperclip className="h-3.5 w-3.5" />
+                <span>{isUploading ? 'Uploading...' : 'Attach Context'}</span>
+              </button>
             </>
           )}
+        </div>
+
+        <div className="flex items-center gap-1 text-xs" style={{ color: '#5C6660' }}>
+          Press <kbd className="kbd">Enter</kbd> to generate
         </div>
       </div>
     </div>

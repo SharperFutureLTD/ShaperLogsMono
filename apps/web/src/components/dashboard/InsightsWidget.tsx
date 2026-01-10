@@ -1,9 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { TrendingUp } from 'lucide-react'
 import { useWorkEntries } from '@/hooks/useWorkEntries'
+
+interface InsightsWidgetProps {
+  onViewInsights?: () => void
+}
 
 interface MonthlyInsights {
   logsThisMonth: number
@@ -11,6 +14,7 @@ interface MonthlyInsights {
   skillsThisMonth: number
   skillsLastMonth: number
   percentChange: number
+  newSkills: number
 }
 
 function calculateInsights(entries: { created_at: string; skills?: string[] | null }[]): MonthlyInsights {
@@ -20,7 +24,8 @@ function calculateInsights(entries: { created_at: string; skills?: string[] | nu
       logsLastMonth: 0,
       skillsThisMonth: 0,
       skillsLastMonth: 0,
-      percentChange: 0
+      percentChange: 0,
+      newSkills: 0
     }
   }
 
@@ -38,7 +43,6 @@ function calculateInsights(entries: { created_at: string; skills?: string[] | nu
   const logsThisMonth = thisMonthEntries.length
   const logsLastMonth = lastMonthEntries.length
 
-  // Count unique skills this month
   const skillsThisMonth = new Set(
     thisMonthEntries.flatMap(e => e.skills || [])
   ).size
@@ -47,7 +51,6 @@ function calculateInsights(entries: { created_at: string; skills?: string[] | nu
     lastMonthEntries.flatMap(e => e.skills || [])
   ).size
 
-  // Calculate percent change in logs
   let percentChange = 0
   if (logsLastMonth > 0) {
     percentChange = Math.round(((logsThisMonth - logsLastMonth) / logsLastMonth) * 100)
@@ -55,16 +58,19 @@ function calculateInsights(entries: { created_at: string; skills?: string[] | nu
     percentChange = 100
   }
 
+  const newSkills = Math.max(0, skillsThisMonth - skillsLastMonth)
+
   return {
     logsThisMonth,
     logsLastMonth,
     skillsThisMonth,
     skillsLastMonth,
-    percentChange
+    percentChange,
+    newSkills
   }
 }
 
-export function InsightsWidget() {
+export function InsightsWidget({ onViewInsights }: InsightsWidgetProps) {
   const { entries, loading } = useWorkEntries()
 
   const insights = useMemo(() => {
@@ -74,83 +80,59 @@ export function InsightsWidget() {
 
   if (loading || !insights) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 w-24 bg-muted rounded" />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-16 bg-muted rounded" />
-              <div className="h-16 bg-muted rounded" />
-            </div>
+      <div>
+        <div className="section-header">
+          <span className="section-title-muted">THIS MONTH</span>
+          <button className="section-action">Insights →</button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="stat-card animate-pulse">
+            <div className="h-6 w-8 bg-[#2A332E] rounded mb-1" />
+            <div className="h-3 w-12 bg-[#2A332E] rounded" />
           </div>
-        </CardContent>
-      </Card>
+          <div className="stat-card animate-pulse">
+            <div className="h-6 w-8 bg-[#2A332E] rounded mb-1" />
+            <div className="h-3 w-12 bg-[#2A332E] rounded" />
+          </div>
+        </div>
+      </div>
     )
   }
 
-  const TrendIcon = insights.percentChange > 0
-    ? TrendingUp
-    : insights.percentChange < 0
-      ? TrendingDown
-      : Minus
-
-  const trendColor = insights.percentChange > 0
-    ? 'text-primary'
-    : insights.percentChange < 0
-      ? 'text-destructive'
-      : 'text-muted-foreground'
-
   return (
-    <Card>
-      <CardContent className="p-4">
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
-          This Month
-        </h3>
+    <div>
+      <div className="section-header">
+        <span className="section-title-muted">THIS MONTH</span>
+        <button onClick={onViewInsights} className="section-action">
+          Insights →
+        </button>
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Logs */}
-          <div>
-            <div className="text-2xl font-bold text-foreground">
-              {insights.logsThisMonth}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Logs */}
+        <div className="stat-card">
+          <div className="stat-value">{insights.logsThisMonth}</div>
+          <div className="stat-label">Logs</div>
+          {insights.percentChange !== 0 && (
+            <div className="stat-change flex items-center gap-0.5">
+              <TrendingUp className="h-3 w-3" />
+              <span>{insights.percentChange}%</span>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Logs
-            </div>
-            {insights.logsLastMonth > 0 && (
-              <div className={`flex items-center gap-1 mt-1 text-xs ${trendColor}`}>
-                <TrendIcon className="h-3 w-3" />
-                <span>
-                  {insights.percentChange > 0 ? '+' : ''}{insights.percentChange}% vs last month
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Skills */}
-          <div>
-            <div className="text-2xl font-bold text-foreground">
-              {insights.skillsThisMonth}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Skills tracked
-            </div>
-            {insights.skillsLastMonth > 0 && (
-              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                <span>
-                  {insights.skillsThisMonth > insights.skillsLastMonth ? '+' : ''}
-                  {insights.skillsThisMonth - insights.skillsLastMonth} new
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {insights.logsThisMonth === 0 && (
-          <p className="text-xs text-muted-foreground text-center mt-4 pt-4 border-t border-border">
-            Start logging to see your monthly insights!
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        {/* Skills */}
+        <div className="stat-card">
+          <div className="stat-value">{insights.skillsThisMonth}</div>
+          <div className="stat-label">Skills</div>
+          {insights.newSkills > 0 && (
+            <div className="stat-change flex items-center gap-0.5">
+              <TrendingUp className="h-3 w-3" />
+              <span>{insights.newSkills} new</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
