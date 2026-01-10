@@ -1,8 +1,15 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Flame } from 'lucide-react'
 import { useWorkEntries } from '@/hooks/useWorkEntries'
+
+// Custom two-tone flame icon
+const FlameIcon = ({ size = 28 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M12 23C7.5 23 4 19.5 4 15.5C4 13.5 5 11.5 6.5 9.5C7.5 8.2 8.7 7 10 5.8L12 4l2 1.8c1.3 1.2 2.5 2.4 3.5 3.7 1.5 2 2.5 4 2.5 6C20 19.5 16.5 23 12 23Z" fill="#F59E0B"/>
+    <path d="M12 23c-2 0-3.5-1.5-3.5-3.5 0-1 .5-2 1.3-3 .4-.5.9-1 1.4-1.5l.8-.7.8.7c.5.5 1 1 1.4 1.5.8 1 1.3 2 1.3 3 0 2-1.5 3.5-3.5 3.5Z" fill="#FCD34D"/>
+  </svg>
+)
 
 interface StreakData {
   currentStreak: number
@@ -117,11 +124,13 @@ export function StreakWidget() {
         <div className="section-header">
           <span className="section-title-muted">YOUR STREAK</span>
         </div>
-        <div className="streak-card">
-          <div className="animate-pulse space-y-3 py-2">
-            <div className="h-7 w-7 bg-[#2A332E] rounded-full mx-auto" />
-            <div className="h-8 w-8 bg-[#2A332E] rounded mx-auto" />
-            <div className="h-4 w-16 bg-[#2A332E] rounded mx-auto" />
+        <div className="streak-card relative">
+          <div className="animate-pulse">
+            <div className="absolute top-3 left-3 h-7 w-7 bg-[#2A332E] rounded" />
+            <div className="space-y-2 py-2 text-center">
+              <div className="h-10 w-10 bg-[#2A332E] rounded mx-auto" />
+              <div className="h-4 w-16 bg-[#2A332E] rounded mx-auto" />
+            </div>
           </div>
         </div>
       </div>
@@ -133,25 +142,31 @@ export function StreakWidget() {
       <div className="section-header">
         <span className="section-title-muted">YOUR STREAK</span>
       </div>
-      <div className={`streak-card ${isGlowing ? 'glowing' : ''}`}>
-        {/* Flame icon */}
-        <div className="mb-1">
-          <Flame
-            className={`h-7 w-7 mx-auto streak-icon ${isGlowing ? '' : 'opacity-50'}`}
-            style={{ color: '#FBBF24' }}
-          />
+      <div className={`streak-card ${isGlowing ? 'glowing' : ''} relative`}>
+        {/* Flame icon - top left */}
+        <div
+          className="absolute top-3 left-3"
+          style={{
+            filter: isGlowing ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.5))' : 'none',
+            opacity: isGlowing ? 1 : 0.5
+          }}
+        >
+          <FlameIcon size={28} />
         </div>
 
         {/* Streak number */}
         <div
-          className={`text-3xl font-bold streak-number ${isGlowing ? '' : ''}`}
-          style={{ color: isGlowing ? '#FBBF24' : '#F1F5F3' }}
+          className="text-4xl font-bold streak-number pt-2"
+          style={{
+            color: isGlowing ? '#FBBF24' : '#F1F5F3',
+            textShadow: isGlowing ? '0 0 20px rgba(251, 191, 36, 0.4)' : 'none'
+          }}
         >
           {streakData.currentStreak}
         </div>
 
         {/* Label */}
-        <div className="text-xs" style={{ color: '#5C6660' }}>
+        <div className="text-sm" style={{ color: '#9CA898' }}>
           day streak
         </div>
 
@@ -159,22 +174,22 @@ export function StreakWidget() {
         <div className="my-3 mx-4" style={{ borderTop: '1px solid #2A332E' }} />
 
         {/* Stats row */}
-        <div className="flex justify-center gap-6 text-center">
+        <div className="flex justify-center gap-8 text-center">
           <div>
-            <span className="text-sm font-semibold" style={{ color: '#F1F5F3' }}>
+            <div className="text-base font-semibold" style={{ color: '#F1F5F3' }}>
               {streakData.bestStreak}
-            </span>
-            <span className="text-xs ml-1" style={{ color: '#5C6660' }}>
+            </div>
+            <div className="text-xs" style={{ color: '#5C6660' }}>
               Best
-            </span>
+            </div>
           </div>
           <div>
-            <span className="text-sm font-semibold" style={{ color: '#F1F5F3' }}>
+            <div className="text-base font-semibold" style={{ color: '#F1F5F3' }}>
               {streakData.totalLogs}
-            </span>
-            <span className="text-xs ml-1" style={{ color: '#5C6660' }}>
+            </div>
+            <div className="text-xs" style={{ color: '#5C6660' }}>
               Total
-            </span>
+            </div>
           </div>
         </div>
       </div>

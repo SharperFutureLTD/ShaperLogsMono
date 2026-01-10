@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo } from "react";
-import { Plus, Target } from "lucide-react";
+import { Plus, Target, Upload, Trash2 } from "lucide-react";
 import { useTargets } from "@/hooks/useTargets";
 import { useWorkEntries } from "@/hooks/useWorkEntries";
 import { TargetList } from "@/components/targets/TargetList";
 import { TargetUpload } from "@/components/targets/TargetUpload";
 import { TargetForm } from "@/components/targets/TargetForm";
+import { ClearAllDialog } from "@/components/targets/ClearAllDialog";
 import { TargetFilters, type TargetTypeFilter, type TargetStatusFilter } from "@/components/targets/TargetFilters";
 import { StatsCards } from "@/components/progress/StatsCards";
 import { ActivityChart } from "@/components/progress/ActivityChart";
@@ -20,6 +21,7 @@ export function TargetsMode() {
   const { entries } = useWorkEntries();
   const [showUpload, setShowUpload] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
 
   // Filter state for targets
@@ -30,6 +32,13 @@ export function TargetsMode() {
   const handleComplete = () => {
     setShowUpload(false);
     setShowForm(false);
+    fetchTargets();
+  };
+
+  const handleClearAll = async () => {
+    for (const target of targets) {
+      await deleteTarget(target.id);
+    }
     fetchTargets();
   };
 
@@ -167,16 +176,38 @@ export function TargetsMode() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="section-title">Active Targets</h3>
-          <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setShowUpload(false);
-            }}
-            className="btn-primary text-xs flex items-center gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Target
-          </button>
+          <div className="flex items-center gap-2">
+            {targets.length > 0 && (
+              <button
+                onClick={() => setShowClearAllDialog(true)}
+                className="btn-ghost text-xs flex items-center gap-1.5"
+                style={{ color: '#EF4444' }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Clear All
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setShowUpload(!showUpload);
+                setShowForm(false);
+              }}
+              className="btn-outline"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import
+            </button>
+            <button
+              onClick={() => {
+                setShowForm(!showForm);
+                setShowUpload(false);
+              }}
+              className="btn-primary text-xs flex items-center gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Target
+            </button>
+          </div>
         </div>
 
         {/* Upload Section */}
@@ -221,6 +252,14 @@ export function TargetsMode() {
           />
         )}
       </div>
+
+      {/* Clear All Dialog */}
+      <ClearAllDialog
+        open={showClearAllDialog}
+        onOpenChange={setShowClearAllDialog}
+        onConfirm={handleClearAll}
+        targetCount={targets.length}
+      />
     </div>
   );
 }

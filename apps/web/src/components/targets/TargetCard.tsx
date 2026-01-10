@@ -52,6 +52,16 @@ export function TargetCard({ target, evidenceCount = 0, onDelete, onClick }: Tar
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const formatTargetType = (type: string): string => {
+    const typeLabels: Record<string, string> = {
+      kpi: 'KPI',
+      ksb: 'KSB',
+      sales_target: 'Sales',
+      goal: 'Goal',
+    };
+    return typeLabels[type] || type;
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) {
       return;
@@ -83,6 +93,14 @@ export function TargetCard({ target, evidenceCount = 0, onDelete, onClick }: Tar
           >
             {badgeText}
           </span>
+          {target.type && (
+            <span
+              className="text-xs px-2 py-0.5 rounded font-medium flex-shrink-0"
+              style={{ background: '#2A332E', color: '#9CA898' }}
+            >
+              {formatTargetType(target.type)}
+            </span>
+          )}
           {/* Hover actions */}
           <div className="hover-actions flex items-center gap-1">
             <button

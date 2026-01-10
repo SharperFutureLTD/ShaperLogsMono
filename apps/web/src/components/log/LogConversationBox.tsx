@@ -108,9 +108,11 @@ export function LogConversationBox({
         {/* Top section: prompt, helper, mic */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
-              What did you work on today?
-            </p>
+            {!value && (
+              <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
+                What did you work on today?
+              </p>
+            )}
             <Textarea
               ref={textareaRef}
               value={value}
@@ -118,12 +120,12 @@ export function LogConversationBox({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? "Listening..." : "Type or tap mic to begin"}
+              placeholder={isRecording ? "Listening..." : (value ? "" : "Type or tap mic to begin")}
               className={cn(
                 "min-h-[24px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
                 isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
               )}
-              style={{ color: '#5C6660' }}
+              style={{ color: '#F1F5F3' }}
               rows={1}
             />
           </div>

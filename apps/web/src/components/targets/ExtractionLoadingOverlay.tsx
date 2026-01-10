@@ -73,25 +73,25 @@ export function ExtractionLoadingOverlay({ isUploading, isExtracting }: Extracti
 
   return (
     <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg">
-      <div className="max-w-md w-full mx-4 p-6 bg-card border border-primary/30 rounded-md shadow-lg">
+      <div className="max-w-xs w-full mx-3 p-4 bg-card border border-primary/30 rounded-md shadow-lg">
         {/* Header with target icon */}
-        <div className="flex items-center gap-3 mb-4">
-          <Target className="h-5 w-5 text-primary animate-pulse" />
-          <h3 className="font-mono text-sm text-primary font-semibold">
-            {isUploading ? "Uploading your document..." : "Extracting targets..."}
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="h-4 w-4 text-primary animate-pulse" />
+          <h3 className="text-sm text-primary font-medium">
+            {isUploading ? "Uploading..." : "Extracting targets..."}
           </h3>
         </div>
 
         {/* Progress bar */}
-        <div className="mb-4">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div className="mb-3">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="mt-1 text-right">
-            <span className="font-mono text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {progress}%
             </span>
           </div>
@@ -99,17 +99,17 @@ export function ExtractionLoadingOverlay({ isUploading, isExtracting }: Extracti
 
         {/* Current stage label */}
         <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-          <p className="font-mono text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+          <p className="text-xs text-muted-foreground">
             {currentLabel}
           </p>
         </div>
 
         {/* Helpful message */}
-        <p className="font-mono text-xs text-muted-foreground/70 mt-4 text-center">
+        <p className="text-xs text-muted-foreground/70 mt-3 text-center">
           {isExtracting
-            ? "This may take 1-2 minutes for large documents"
-            : "This may take a moment for larger documents"
+            ? "This may take 1-2 minutes"
+            : "Processing..."
           }
         </p>
       </div>
