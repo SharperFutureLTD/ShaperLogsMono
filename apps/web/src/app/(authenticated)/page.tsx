@@ -54,9 +54,9 @@ export default function DashboardPage() {
       <div className="flex-1 pb-20 md:pb-8">
         <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
           {/* Desktop: Grid layout with main content and widgets */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main content column */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               {/* Greeting */}
               <GreetingHeader name={displayName} />
 
