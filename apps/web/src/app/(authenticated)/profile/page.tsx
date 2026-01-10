@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Crown } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { IndustrySelector, getIndustryLabel } from '@/components/IndustrySelector';
 import { StatusSelector, getStatusLabel, EmploymentStatus } from '@/components/StatusSelector';
 import { StudyFieldSelector, getStudyFieldLabel } from '@/components/StudyFieldSelector';
@@ -22,6 +23,8 @@ export default function ProfilePage() {
   const [selectedStatus, setSelectedStatus] = useState<EmploymentStatus | null>(null);
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
   const [selectedStudyField, setSelectedStudyField] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>('');
+  const [isEditingName, setIsEditingName] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -36,6 +39,7 @@ export default function ProfilePage() {
       setSelectedStatus(profile.employment_status);
       setSelectedIndustry(profile.industry);
       setSelectedStudyField(profile.study_field);
+      setDisplayName(profile.display_name || '');
     }
   }, [profile]);
 
@@ -117,17 +121,79 @@ export default function ProfilePage() {
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {/* User Info */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           <h2 className="font-mono text-xs text-muted-foreground">Account</h2>
-          <div className="flex items-center gap-2">
-            <p className="font-mono text-sm text-foreground">{user?.email}</p>
-            {hasSubscription && isActive && (
-              <Badge variant="default" className="gap-1 bg-green-500/10 text-green-500 border-green-500/20">
-                <Crown className="h-3 w-3" />
-                Pro
-              </Badge>
+
+          {/* Display Name */}
+          <div className="space-y-2">
+            <label className="font-mono text-xs text-muted-foreground">Display Name</label>
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="max-w-xs font-mono text-sm"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const success = await updateProfile({ displayName: displayName || null });
+                    if (success) {
+                      toast.success('Name updated');
+                      setIsEditingName(false);
+                    } else {
+                      toast.error('Failed to update name');
+                    }
+                  }}
+                  className="font-mono text-xs"
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditingName(false);
+                    setDisplayName(profile?.display_name || '');
+                  }}
+                  className="font-mono text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-sm text-foreground">
+                  {profile?.display_name || 'Not set'}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingName(true)}
+                  className="h-6 w-6"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
             )}
           </div>
+
+          {/* Email */}
+          <div className="space-y-2">
+            <label className="font-mono text-xs text-muted-foreground">Email</label>
+            <div className="flex items-center gap-2">
+              <p className="font-mono text-sm text-foreground">{user?.email}</p>
+              {hasSubscription && isActive && (
+                <Badge variant="default" className="gap-1 bg-green-500/10 text-green-500 border-green-500/20">
+                  <Crown className="h-3 w-3" />
+                  Pro
+                </Badge>
+              )}
+            </div>
+          </div>
+
           <Button
             variant="ghost"
             size="sm"

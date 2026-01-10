@@ -21,6 +21,7 @@ const UpdateProfileSchema = z.object({
   employmentStatus: z.enum(['employed', 'job_seeking', 'student', 'apprentice']).optional(),
   industry: z.string().optional(),
   studyField: z.string().optional(),
+  displayName: z.string().nullable().optional(),
 });
 
 const ErrorSchema = z.object({
@@ -117,6 +118,7 @@ app.openapi(updateRoute, async (c) => {
   if (body.employmentStatus) updateData.employment_status = body.employmentStatus;
   if (body.industry) updateData.industry = body.industry;
   if (body.studyField) updateData.study_field = body.studyField;
+  if (body.displayName !== undefined) updateData.display_name = body.displayName;
 
   const { data, error } = await supabase
     .from('profiles')

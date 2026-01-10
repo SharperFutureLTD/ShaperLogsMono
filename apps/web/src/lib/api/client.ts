@@ -258,6 +258,7 @@ class APIClient {
     employmentStatus?: 'employed' | 'job_seeking' | 'student' | 'apprentice';
     industry?: string;
     studyField?: string;
+    displayName?: string;
   }) {
     return this.request<Profile>('/api/profile', {
       method: 'PUT',

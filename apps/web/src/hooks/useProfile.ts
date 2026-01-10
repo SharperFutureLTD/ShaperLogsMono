@@ -116,10 +116,12 @@ export const useProfile = () => {
       employmentStatus?: EmploymentStatus;
       industry?: string | null;
       studyField?: string | null;
+      displayName?: string | null;
     }) => apiClient.updateProfile({
       employmentStatus: data.employmentStatus,
       industry: data.industry ?? undefined,
       studyField: data.studyField ?? undefined,
+      displayName: data.displayName ?? undefined,
     }),
 
     onMutate: async (data) => {
@@ -133,6 +135,7 @@ export const useProfile = () => {
           ...(data.employmentStatus !== undefined && { employment_status: data.employmentStatus }),
           ...(data.industry !== undefined && { industry: data.industry }),
           ...(data.studyField !== undefined && { study_field: data.studyField }),
+          ...(data.displayName !== undefined && { display_name: data.displayName }),
         };
       });
 
@@ -219,6 +222,7 @@ export const useProfile = () => {
     employmentStatus?: EmploymentStatus;
     industry?: string | null;
     studyField?: string | null;
+    displayName?: string | null;
   }): Promise<boolean> => {
     try {
       await updateProfileMutation.mutateAsync(data);
