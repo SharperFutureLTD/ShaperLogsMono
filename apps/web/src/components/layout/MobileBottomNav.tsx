@@ -8,7 +8,9 @@ import {
   Target,
   Menu,
   User,
-  LogOut
+  LogOut,
+  Settings,
+  CreditCard
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -120,10 +122,34 @@ export function MobileBottomNav({
               <Link
                 href="/profile"
                 className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-[#1C2420]"
+                style={{
+                  background: pathname === '/profile' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+                }}
               >
-                <User className="h-5 w-5" style={{ color: '#5C6660' }} />
-                <span style={{ color: '#F1F5F3' }}>Profile</span>
+                <User className="h-5 w-5" style={{ color: pathname === '/profile' ? '#34A853' : '#5C6660' }} />
+                <span style={{ color: pathname === '/profile' ? '#34A853' : '#F1F5F3' }}>Profile</span>
               </Link>
+              <Link
+                href="/settings"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-[#1C2420]"
+                style={{
+                  background: pathname === '/settings' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+                }}
+              >
+                <Settings className="h-5 w-5" style={{ color: pathname === '/settings' ? '#34A853' : '#5C6660' }} />
+                <span style={{ color: pathname === '/settings' ? '#34A853' : '#F1F5F3' }}>Settings</span>
+              </Link>
+              <Link
+                href="/billing"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-[#1C2420]"
+                style={{
+                  background: pathname === '/billing' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+                }}
+              >
+                <CreditCard className="h-5 w-5" style={{ color: pathname === '/billing' ? '#34A853' : '#5C6660' }} />
+                <span style={{ color: pathname === '/billing' ? '#34A853' : '#F1F5F3' }}>Billing</span>
+              </Link>
+              <div className="my-2 border-t" style={{ borderColor: '#2A332E' }} />
               <button
                 onClick={signOut}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full hover:bg-[#1C2420]"

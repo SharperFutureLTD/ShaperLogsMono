@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Pencil, Sparkles, Target } from 'lucide-react'
+import { Pencil, Sparkles, Target, Settings, CreditCard } from 'lucide-react'
 import { useGeneratedContent } from '@/hooks/useGeneratedContent'
 
 interface NavItem {
@@ -106,7 +106,40 @@ export function LeftSidebar({
 
       {/* User section */}
       <div className="px-3 py-4" style={{ borderTop: '1px solid #2A332E' }}>
-        <div className="flex items-center gap-2 px-1">
+        {/* Settings & Billing links */}
+        <div className="flex flex-col gap-0.5 mb-3">
+          <Link
+            href="/settings"
+            className="nav-item"
+            style={{
+              background: pathname === '/settings' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+              color: pathname === '/settings' ? '#34A853' : '#9CA898',
+            }}
+          >
+            <Settings className="h-[18px] w-[18px]" />
+            <span>Settings</span>
+          </Link>
+          <Link
+            href="/billing"
+            className="nav-item"
+            style={{
+              background: pathname === '/billing' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+              color: pathname === '/billing' ? '#34A853' : '#9CA898',
+            }}
+          >
+            <CreditCard className="h-[18px] w-[18px]" />
+            <span>Billing</span>
+          </Link>
+        </div>
+
+        {/* Profile link */}
+        <Link
+          href="/profile"
+          className="flex items-center gap-2 px-1 py-1.5 rounded-lg transition-colors hover:bg-[#1C2420]"
+          style={{
+            background: pathname === '/profile' ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+          }}
+        >
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-xs"
             style={{ background: '#34A853', color: '#0A0F0D' }}
@@ -114,14 +147,17 @@ export function LeftSidebar({
             {userName?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div>
-            <div className="font-medium text-sm" style={{ color: '#F1F5F3' }}>
+            <div
+              className="font-medium text-sm"
+              style={{ color: pathname === '/profile' ? '#34A853' : '#F1F5F3' }}
+            >
               {userName || 'User'}
             </div>
             <div className="text-xs" style={{ color: '#34A853' }}>
               Pro
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   )
