@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Pencil, Sparkles, Target, Settings, CreditCard } from 'lucide-react'
-import { useGeneratedContent } from '@/hooks/useGeneratedContent'
 
 interface NavItem {
   id: string
@@ -26,20 +25,19 @@ export function LeftSidebar({
   userName,
 }: LeftSidebarProps) {
   const pathname = usePathname()
-  const { content } = useGeneratedContent()
-
-  // Count recent generations for badge
-  const recentGenerationCount = content?.length || 0
 
   const navItems: NavItem[] = [
     { id: 'log', label: 'Log', icon: Pencil, mode: 'log' },
-    { id: 'generate', label: 'Generate', icon: Sparkles, mode: 'generate', badge: recentGenerationCount > 0 ? recentGenerationCount : undefined },
+    { id: 'generate', label: 'Generate', icon: Sparkles, mode: 'generate' },
     { id: 'progress', label: 'Progress', icon: Target, mode: 'targets' },
   ]
 
   const isActive = (item: NavItem) => {
     return currentMode === item.mode && pathname === '/'
   }
+
+  // Calculate active index for sliding indicator
+  const activeIndex = navItems.findIndex(item => isActive(item))
 
   return (
     <aside
@@ -69,18 +67,30 @@ export function LeftSidebar({
             MAIN
           </span>
         </div>
-        <ul className="space-y-0.5">
+        <ul className="space-y-0.5 relative">
+          {/* Sliding active indicator */}
+          {activeIndex !== -1 && (
+            <div
+              className="absolute left-0 right-0 rounded-lg transition-transform duration-300 ease-out pointer-events-none"
+              style={{
+                height: '36px',
+                transform: `translateY(${activeIndex * 38}px)`,
+                background: 'rgba(52, 168, 83, 0.15)',
+              }}
+            />
+          )}
+
           {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item)
 
             return (
-              <li key={item.id}>
+              <li key={item.id} className="relative z-10">
                 <button
                   onClick={() => onModeChange(item.mode)}
                   className="nav-item"
                   style={{
-                    background: active ? 'rgba(52, 168, 83, 0.15)' : 'transparent',
+                    background: 'transparent',
                     color: active ? '#34A853' : '#9CA898',
                   }}
                 >

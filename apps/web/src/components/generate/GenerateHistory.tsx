@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Sparkles, ChevronDown } from 'lucide-react';
 import { useGeneratedContent } from '@/hooks/useGeneratedContent';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,11 +10,14 @@ import { GenerateHistoryItem } from './GenerateHistoryItem';
 import { GenerateFilters } from './GenerateFilters';
 import { toast } from 'sonner';
 
+const DEFAULT_LIMIT = 3;
+
 export function GenerateHistory() {
   const { user } = useAuth();
   const { content, loading: isLoading, deleteContent } = useGeneratedContent();
   const [dateRange, setDateRange] = usePersistedState<DateRangeFilter>('generate-date-filter', 'all', user?.id);
   const [typeFilter, setTypeFilter] = usePersistedState<string[]>('generate-type-filter', [], user?.id);
+  const [showAll, setShowAll] = useState(false);
 
   const handleDelete = async (id: string) => {
     try {
@@ -95,13 +98,31 @@ export function GenerateHistory() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredContent.map((item) => (
+          {(showAll ? filteredContent : filteredContent.slice(0, DEFAULT_LIMIT)).map((item) => (
             <GenerateHistoryItem
               key={item.id}
               item={item}
               onDelete={handleDelete}
             />
           ))}
+
+          {/* Show more / Show less button */}
+          {filteredContent.length > DEFAULT_LIMIT && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-[#1C2420]"
+              style={{
+                background: '#141A17',
+                color: '#9CA898',
+                border: '1px dashed #2A332E'
+              }}
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`}
+              />
+              {showAll ? 'Show less' : `View ${filteredContent.length - DEFAULT_LIMIT} more generation${filteredContent.length - DEFAULT_LIMIT === 1 ? '' : 's'}`}
+            </button>
+          )}
         </div>
       )}
     </div>

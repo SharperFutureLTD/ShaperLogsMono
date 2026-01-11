@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react";
-import { Copy, Trash2, ChevronDown, Eye, EyeOff, Loader2, Tag } from "lucide-react";
+import { Copy, Trash2, Eye, EyeOff, Loader2, Tag, ChevronDown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useEncryption } from "@/hooks/useEncryption";
@@ -45,12 +45,12 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
     } else if (diffDays === 1) {
       return `Yesterday at ${timeStr}`;
     } else if (diffDays < 7) {
-      return `${diffDays} days ago at ${timeStr}`;
+      return `${diffDays} days ago`;
     } else {
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric"
-      }) + ` at ${timeStr}`;
+      });
     }
   };
 
@@ -69,6 +69,9 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
       setIsRevealed(false);
       return;
     }
+
+    // Auto-expand card when revealing
+    setIsExpanded(true);
 
     // Use cached decrypted content if available
     if (decryptedOriginal) {
@@ -113,8 +116,17 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
 
   return (
     <div
-      className="entry-card group"
+      className="entry-card group cursor-pointer"
       onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      aria-expanded={isExpanded}
     >
       {/* Top row: timestamp and badges */}
       <div className="flex items-center justify-between mb-2">
@@ -132,8 +144,8 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
               {skillCount} skill{skillCount !== 1 ? 's' : ''}
             </span>
           )}
-          {/* Action buttons */}
-          <div className="hover-actions flex items-center gap-1">
+          {/* Action buttons - always visible with reduced opacity */}
+          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
             {/* Reveal button - only show if encrypted_original exists */}
             {entry.encrypted_original && (
               <button
@@ -141,8 +153,9 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                   e.stopPropagation();
                   handleReveal();
                 }}
-                className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
+                className="p-1.5 rounded hover:bg-[#2A332E] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#34A853]"
                 title={isRevealed ? "Hide original" : "Reveal original"}
+                aria-label={isRevealed ? "Hide original content" : "Reveal original content"}
               >
                 {isDecrypting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: '#F59E0B' }} />
@@ -158,8 +171,9 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                 e.stopPropagation();
                 handleCopy();
               }}
-              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
-              title="Copy"
+              className="p-1.5 rounded hover:bg-[#2A332E] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#34A853]"
+              title="Copy to clipboard"
+              aria-label="Copy entry to clipboard"
             >
               <Copy className="h-3.5 w-3.5" style={{ color: '#5C6660' }} />
             </button>
@@ -169,17 +183,18 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                   e.stopPropagation();
                   onDelete(entry.id);
                 }}
-                className="p-1.5 rounded hover:bg-[#2A332E] transition-colors"
-                title="Delete"
+                className="p-1.5 rounded hover:bg-[#2A332E] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#34A853]"
+                title="Delete entry"
+                aria-label="Delete entry"
               >
                 <Trash2 className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
               </button>
             )}
           </div>
-          {/* Chevron indicator */}
+          {/* Expand indicator */}
           {hasExpandableContent && (
             <ChevronDown
-              className={`expand-chevron h-4 w-4 ${isExpanded ? 'expanded' : ''}`}
+              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
               style={{ color: '#5C6660' }}
             />
           )}
@@ -187,18 +202,23 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
       </div>
 
       {/* Summary text */}
-      <p className="text-sm leading-relaxed mb-3" style={{ color: '#F1F5F3' }}>
+      <p className="text-sm leading-relaxed mb-3 line-clamp-2" style={{ color: '#F1F5F3' }}>
         {entry.redacted_summary}
       </p>
 
       {/* Skill tags */}
       {entry.skills && entry.skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {entry.skills.map((skill, i) => (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {entry.skills.slice(0, 4).map((skill, i) => (
             <span key={i} className="skill-badge">
               {skill}
             </span>
           ))}
+          {entry.skills.length > 4 && (
+            <span className="text-xs" style={{ color: '#5C6660' }}>
+              +{entry.skills.length - 4} more
+            </span>
+          )}
         </div>
       )}
 
@@ -252,27 +272,31 @@ export function LogHistoryItem({ entry, onDelete }: LogHistoryItemProps) {
                 </div>
               )}
 
-              {/* Original conversation (when revealed) */}
-              {isRevealed && decryptedOriginal && (
-                <div className="mb-3">
-                  <p className="text-xs font-medium mb-2" style={{ color: '#F59E0B' }}>
-                    Original Conversation
-                  </p>
-                  <div>
-                    {decryptedOriginal.map((message, i) => (
-                      <div
-                        key={i}
-                        className={`original-message ${message.role}`}
-                      >
-                        <span
-                          className="text-xs font-medium block mb-1"
-                          style={{ color: message.role === 'user' ? '#34A853' : '#5C6660' }}
-                        >
-                          {message.role === 'user' ? 'You' : 'Assistant'}
-                        </span>
-                        <span style={{ color: '#9CA898' }}>{message.content}</span>
+              {/* Original conversation (when revealed) - with slide animation */}
+              {decryptedOriginal && (
+                <div className={`expandable-content ${isRevealed ? 'expanded' : ''}`}>
+                  <div className="expandable-inner">
+                    <div className="mb-3">
+                      <p className="text-xs font-medium mb-2" style={{ color: '#F59E0B' }}>
+                        Original Conversation
+                      </p>
+                      <div>
+                        {decryptedOriginal.map((message, i) => (
+                          <div
+                            key={i}
+                            className={`original-message ${message.role}`}
+                          >
+                            <span
+                              className="text-xs font-medium block mb-1"
+                              style={{ color: message.role === 'user' ? '#34A853' : '#5C6660' }}
+                            >
+                              {message.role === 'user' ? 'You' : 'Assistant'}
+                            </span>
+                            <span style={{ color: '#9CA898' }}>{message.content}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
               )}

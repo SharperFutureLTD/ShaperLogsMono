@@ -20,6 +20,9 @@ import aiVoiceToTextRoutes from '../routes/ai/voice-to-text';
 import documentsUploadRoutes from '../routes/documents/upload';
 import billingRoutes from '../routes/billing';
 import careerRoutes from '../routes/career';
+import summariesRoutes from '../routes/summaries';
+import aiProfileRoutes from '../routes/ai-profile';
+import jobsRoutes from '../routes/jobs';
 
 // Create OpenAPI app
 export const app = new OpenAPIHono<AuthContext>();
@@ -112,6 +115,13 @@ app.route('/', billingRoutes);
 
 // Register career routes
 app.route('/', careerRoutes);
+
+// Register summaries and AI profile routes
+app.route('/', summariesRoutes);
+app.route('/', aiProfileRoutes);
+
+// Register background jobs routes (service key auth)
+app.route('/', jobsRoutes);
 
 // API Documentation with Swagger UI
 app.get('/api/docs', swaggerUI({

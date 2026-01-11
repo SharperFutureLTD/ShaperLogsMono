@@ -9,8 +9,6 @@ interface StatsCardsProps {
   newSkills: number
   currentStreak: number
   bestStreak: number
-  hoursLogged: number
-  hoursGrowth: number
 }
 
 export function StatsCards({
@@ -20,11 +18,9 @@ export function StatsCards({
   newSkills,
   currentStreak,
   bestStreak,
-  hoursLogged,
-  hoursGrowth,
 }: StatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-3 gap-3">
       {/* Logs */}
       <div className="stat-card">
         <div className="text-2xl font-bold" style={{ color: '#F1F5F3' }}>
@@ -61,19 +57,6 @@ export function StatsCards({
         <div className="text-xs mt-1" style={{ color: '#5C6660' }}>
           Best: {bestStreak}
         </div>
-      </div>
-
-      {/* Hours */}
-      <div className="stat-card">
-        <div className="text-2xl font-bold" style={{ color: '#F1F5F3' }}>
-          {hoursLogged}
-        </div>
-        <div className="text-xs" style={{ color: '#5C6660' }}>Hours</div>
-        {hoursGrowth > 0 && (
-          <div className="flex items-center gap-1 mt-1">
-            <span className="text-xs" style={{ color: '#34A853' }}>+{hoursGrowth}h</span>
-          </div>
-        )}
       </div>
     </div>
   )

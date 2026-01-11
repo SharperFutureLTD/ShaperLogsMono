@@ -1,8 +1,14 @@
 'use client'
 
 import { useMemo } from 'react'
-import { TrendingUp } from 'lucide-react'
 import { useWorkEntries } from '@/hooks/useWorkEntries'
+
+// Simple up arrow SVG
+const UpArrow = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <path d="m18 15-6-6-6 6"/>
+  </svg>
+)
 
 interface InsightsWidgetProps {
   onViewInsights?: () => void
@@ -115,8 +121,8 @@ export function InsightsWidget({ onViewInsights }: InsightsWidgetProps) {
           <div className="stat-label">Logs</div>
           {insights.percentChange !== 0 && (
             <div className="stat-change flex items-center gap-0.5">
-              <TrendingUp className="h-3 w-3" />
-              <span>{insights.percentChange}%</span>
+              <UpArrow className="h-3 w-3" />
+              <span>{insights.percentChange > 0 ? '+' : ''}{insights.percentChange}%</span>
             </div>
           )}
         </div>
@@ -127,8 +133,8 @@ export function InsightsWidget({ onViewInsights }: InsightsWidgetProps) {
           <div className="stat-label">Skills</div>
           {insights.newSkills > 0 && (
             <div className="stat-change flex items-center gap-0.5">
-              <TrendingUp className="h-3 w-3" />
-              <span>{insights.newSkills} new</span>
+              <UpArrow className="h-3 w-3" />
+              <span>+{insights.newSkills} new</span>
             </div>
           )}
         </div>

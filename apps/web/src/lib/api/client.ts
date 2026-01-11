@@ -406,8 +406,19 @@ class APIClient {
     workEntries?: Array<Pick<WorkEntry, 'redacted_summary' | 'skills' | 'achievements' | 'metrics' | 'category' | 'created_at'>>;
     industry: string;
     contextDocument?: string;
+    timeRange?: { start?: string; end?: string };
+    useSummaries?: boolean;
   }) {
-    return this.request<{ content: string; error?: string }>('/api/ai/generate', {
+    return this.request<{
+      content: string;
+      error?: string;
+      meta?: {
+        timeRangeParsed?: boolean;
+        timeRangeDescription?: string;
+        usedSummaries?: boolean;
+        entriesUsed?: number;
+      };
+    }>('/api/ai/generate', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -589,6 +600,169 @@ class APIClient {
     return this.request<{ history: any[] }>('/api/career/upload-resume', {
       method: 'POST',
       body: formData,
+    });
+  }
+
+  // ========================================
+  // Periodic Summaries
+  // ========================================
+
+  async getSummaries(periodType?: 'monthly' | 'quarterly' | 'yearly', limit?: number) {
+    const params = new URLSearchParams();
+    if (periodType) params.append('period_type', periodType);
+    if (limit) params.append('limit', limit.toString());
+
+    return this.request<{
+      data: Array<{
+        id: string;
+        user_id: string;
+        period_type: 'monthly' | 'quarterly' | 'yearly';
+        period_start: string;
+        period_end: string;
+        summary_text: string;
+        top_skills: string[];
+        top_achievements: string[];
+        key_metrics: Record<string, unknown>;
+        categories_breakdown: Record<string, number>;
+        work_entry_count: number;
+        token_count: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>(`/api/summaries?${params.toString()}`);
+  }
+
+  async getSummary(period: 'monthly' | 'quarterly' | 'yearly', date: string) {
+    return this.request<{
+      id: string;
+      user_id: string;
+      period_type: 'monthly' | 'quarterly' | 'yearly';
+      period_start: string;
+      period_end: string;
+      summary_text: string;
+      top_skills: string[];
+      top_achievements: string[];
+      key_metrics: Record<string, unknown>;
+      categories_breakdown: Record<string, number>;
+      work_entry_count: number;
+      token_count: number;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/summaries/${period}/${date}`);
+  }
+
+  async generateSummary(data: {
+    period_type: 'monthly' | 'quarterly' | 'yearly';
+    period_date?: string;
+  }) {
+    return this.request<{
+      id: string;
+      user_id: string;
+      period_type: 'monthly' | 'quarterly' | 'yearly';
+      period_start: string;
+      period_end: string;
+      summary_text: string;
+      top_skills: string[];
+      top_achievements: string[];
+    } | null>('/api/summaries/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSummary(id: string) {
+    return this.request<{ success: boolean }>(`/api/summaries/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========================================
+  // AI User Profile
+  // ========================================
+
+  async getAIProfile() {
+    return this.request<{
+      data: {
+        id: string;
+        user_id: string;
+        first_name: string | null;
+        profile_name: string | null;
+        writing_style: {
+          sentenceLength: 'short' | 'medium' | 'long';
+          tone: 'casual' | 'professional' | 'technical' | 'balanced';
+          patterns: string[];
+          examples: string[];
+          avgWordCount: number;
+          preferredVocabulary: string[];
+          verbosity: 'concise' | 'detailed' | 'varies';
+        };
+        industry: string | null;
+        employment_status: string | null;
+        current_role: string | null;
+        current_company: string | null;
+        career_summary: string | null;
+        career_goals: string[];
+        regular_activities: string[];
+        aggregated_skills: Record<string, number>;
+        skill_categories: Record<string, string[]>;
+        preferences: {
+          preferredContentLength: 'short' | 'medium' | 'long';
+          formalityLevel: number;
+          includeMetrics: boolean;
+        };
+        last_generated_at: string | null;
+        entries_analyzed_count: number;
+        version: number;
+        created_at: string;
+        updated_at: string;
+      } | null;
+      exists: boolean;
+    }>('/api/ai-profile');
+  }
+
+  async generateAIProfile() {
+    return this.request<{
+      data: {
+        id: string;
+        user_id: string;
+        first_name: string | null;
+        profile_name: string | null;
+        writing_style: any;
+        industry: string | null;
+        employment_status: string | null;
+        current_role: string | null;
+        current_company: string | null;
+        career_summary: string | null;
+        career_goals: string[];
+        regular_activities: string[];
+        aggregated_skills: Record<string, number>;
+        skill_categories: Record<string, string[]>;
+        preferences: any;
+        last_generated_at: string | null;
+        entries_analyzed_count: number;
+        version: number;
+      };
+      generated: boolean;
+    }>('/api/ai-profile/generate', {
+      method: 'POST',
+    });
+  }
+
+  async updateAIProfilePreferences(preferences: {
+    preferredContentLength?: 'short' | 'medium' | 'long';
+    formalityLevel?: number;
+    includeMetrics?: boolean;
+  }) {
+    return this.request<{
+      success: boolean;
+      preferences: {
+        preferredContentLength: 'short' | 'medium' | 'long';
+        formalityLevel: number;
+        includeMetrics: boolean;
+      };
+    }>('/api/ai-profile/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(preferences),
     });
   }
 }

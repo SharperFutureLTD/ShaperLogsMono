@@ -9,12 +9,20 @@ import { useProfile } from '@/hooks/useProfile';
 import { GenerateType } from '@/types/generate';
 import { toast } from 'sonner';
 
+interface GenerateMeta {
+  timeRangeParsed?: boolean;
+  timeRangeDescription?: string;
+  usedSummaries?: boolean;
+  entriesUsed?: number;
+}
+
 interface GenerateState {
   isGenerating: boolean;
   generatedContent: string | null;
   selectedType: GenerateType | null;
   prompt: string;
   contextDocument: string | null;
+  lastGenerateMeta: GenerateMeta | null;
 }
 
 export function useGenerateConversation() {
@@ -28,45 +36,54 @@ export function useGenerateConversation() {
     selectedType: null,
     prompt: '',
     contextDocument: null,
+    lastGenerateMeta: null,
   });
 
   // GENERATE CONTENT MUTATION (migrated from Edge Function to REST API)
+  // Now uses server-side time-range parsing, periodic summaries, and AI profiles
   const generateMutation = useMutation({
     mutationFn: async (promptToUse: string) => {
-      // Prepare work entries for context, sorted by date (newest first)
-      const entriesForContext = [...workEntries]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .map(entry => ({
-          redacted_summary: entry.redacted_summary,
-          skills: entry.skills || [],
-          achievements: entry.achievements || [],
-          metrics: entry.metrics || {},
-          category: entry.category || 'general',
-          created_at: entry.created_at,
-        }));
-
-      // Call REST API instead of Edge Function
+      // The API now handles:
+      // 1. Parsing time ranges from the prompt (e.g., "today", "this week")
+      // 2. Using periodic summaries for users with 50+ entries
+      // 3. Fetching relevant entries based on context
+      // We no longer send all entries - let the API decide what to use
       const response = await apiClient.generateContent({
         prompt: promptToUse,
         type: state.selectedType || 'general',
-        workEntries: entriesForContext,
+        // Don't send entries - API will fetch based on prompt analysis
         industry: profile?.industry || 'general',
         contextDocument: state.contextDocument || undefined,
+        // Let API use summaries automatically
+        useSummaries: true,
       });
 
       if (response.error) {
         throw new Error(response.error);
       }
 
-      return response.content;
+      return {
+        content: response.content,
+        meta: response.meta,
+      };
     },
 
     onMutate: () => {
-      setState(prev => ({ ...prev, isGenerating: true, generatedContent: null }));
+      setState(prev => ({
+        ...prev,
+        isGenerating: true,
+        generatedContent: null,
+        lastGenerateMeta: null,
+      }));
     },
 
-    onSuccess: (content) => {
-      setState(prev => ({ ...prev, generatedContent: content, isGenerating: false }));
+    onSuccess: (result) => {
+      setState(prev => ({
+        ...prev,
+        generatedContent: result.content,
+        isGenerating: false,
+        lastGenerateMeta: result.meta || null,
+      }));
     },
 
     onError: (error: Error) => {
@@ -98,8 +115,8 @@ export function useGenerateConversation() {
     }
 
     try {
-      const content = await generateMutation.mutateAsync(promptToUse);
-      return content;
+      const result = await generateMutation.mutateAsync(promptToUse);
+      return result.content;
     } catch (error) {
       return null;
     }
@@ -129,6 +146,7 @@ export function useGenerateConversation() {
         selectedType: null,
         prompt: '',
         contextDocument: null,
+        lastGenerateMeta: null,
       });
 
       return saved;
@@ -146,10 +164,11 @@ export function useGenerateConversation() {
       selectedType: null,
       prompt: '',
       contextDocument: null,
+      lastGenerateMeta: null,
     });
   }, []);
 
-  // Return exact same interface
+  // Return interface with new meta fields
   return {
     ...state,
     workEntriesCount: workEntries.length,

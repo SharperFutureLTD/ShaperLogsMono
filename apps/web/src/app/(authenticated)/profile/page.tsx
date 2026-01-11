@@ -36,7 +36,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile) {
-      setSelectedStatus(profile.employment_status);
+      setSelectedStatus(profile.employment_status as EmploymentStatus | null);
       setSelectedIndustry(profile.industry);
       setSelectedStudyField(profile.study_field);
       setDisplayName(profile.display_name || '');
@@ -208,7 +208,7 @@ export default function ProfilePage() {
         <section>
           <h2 className="font-mono text-xs text-muted-foreground mb-2">Current Situation</h2>
           <p className="font-mono text-sm text-foreground">
-            {getStatusLabel(profile?.employment_status || null)}
+            {getStatusLabel((profile?.employment_status as EmploymentStatus) || null)}
           </p>
         </section>
 

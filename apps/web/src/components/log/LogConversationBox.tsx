@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react";
-import { FastForward, Trash2, RotateCcw, Pencil, RefreshCw, Mic } from "lucide-react";
+import { FastForward, Trash2, RotateCcw, Pencil, RefreshCw } from "lucide-react";
+import { ActionButton } from "@/components/log/ActionButton";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -101,15 +102,33 @@ export function LogConversationBox({
 
   const showSkipButton = messages.length > 0 && isInProgress && !isLoading;
 
+  // Determine ActionButton mode based on current state
+  const getActionButtonMode = (): 'mic' | 'recording' | 'transcribing' | 'send' => {
+    if (isTranscribing) return 'transcribing';
+    if (isRecording) return 'recording';
+    if (value.trim()) return 'send';
+    return 'mic';
+  };
+
   // Compact input card (no active conversation)
   if (!isActive) {
     return (
-      <div className="input-card">
+      <div
+        className="input-card"
+        style={{
+          padding: '1.5rem',
+          boxShadow: isFocused
+            ? '0 0 0 3px rgba(52, 168, 83, 0.15), 0 4px 20px rgba(0, 0, 0, 0.3)'
+            : '0 2px 12px rgba(0, 0, 0, 0.2)',
+          borderColor: isFocused ? '#34A853' : '#2A332E',
+          transition: 'all 0.2s ease'
+        }}
+      >
         {/* Top section: prompt, helper, mic */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             {!value && (
-              <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
+              <p className="text-base font-medium mb-2" style={{ color: '#F1F5F3' }}>
                 What did you work on today?
               </p>
             )}
@@ -122,30 +141,27 @@ export function LogConversationBox({
               onKeyDown={handleKeyDown}
               placeholder={isRecording ? "Listening..." : (value ? "" : "Type or tap mic to begin")}
               className={cn(
-                "min-h-[24px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+                "min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0",
                 isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
               )}
               style={{ color: '#F1F5F3' }}
               rows={1}
             />
           </div>
-          <button
-            onClick={handleMicClick}
-            className={cn(
-              "btn-mic flex-shrink-0",
-              isRecording && "animate-recording-pulse"
-            )}
-          >
-            <Mic className="h-5 w-5" />
-          </button>
+          <ActionButton
+            mode={getActionButtonMode()}
+            onMicClick={handleMicClick}
+            onSendClick={handleSubmit}
+            size="large"
+          />
         </div>
 
         {/* Divider */}
-        <div className="my-3" style={{ borderTop: '1px solid #2A332E' }} />
+        <div className="my-4" style={{ borderTop: '1px solid #2A332E' }} />
 
         {/* Footer: Enter hint + mode toggle */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-xs" style={{ color: '#5C6660' }}>
+          <div className="flex items-center gap-1 text-sm" style={{ color: '#5C6660' }}>
             Press <kbd className="kbd">Enter</kbd> to start
           </div>
           <div
@@ -155,7 +171,7 @@ export function LogConversationBox({
             <button
               onClick={() => setMode('guided')}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
                 mode === 'guided'
                   ? "bg-[#2A332E] text-[#F1F5F3]"
                   : "text-[#5C6660] hover:text-[#9CA898]"
@@ -166,7 +182,7 @@ export function LogConversationBox({
             <button
               onClick={() => setMode('quick')}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
                 mode === 'quick'
                   ? "bg-[#2A332E] text-[#F1F5F3]"
                   : "text-[#5C6660] hover:text-[#9CA898]"
@@ -323,16 +339,12 @@ export function LogConversationBox({
             style={{ color: '#F1F5F3' }}
             rows={1}
           />
-          <button
-            onClick={handleMicClick}
+          <ActionButton
+            mode={getActionButtonMode()}
+            onMicClick={handleMicClick}
+            onSendClick={handleSubmit}
             disabled={inputDisabled}
-            className={cn(
-              "btn-mic flex-shrink-0",
-              isRecording && "animate-recording-pulse"
-            )}
-          >
-            <Mic className="h-5 w-5" />
-          </button>
+          />
         </div>
       )}
 

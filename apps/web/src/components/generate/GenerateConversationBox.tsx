@@ -1,7 +1,8 @@
 'use client'
 
 import { KeyboardEvent, useRef, useState, useEffect } from 'react';
-import { Sparkles, Paperclip, FileText, X, Mic } from 'lucide-react';
+import { Sparkles, Paperclip, FileText, X } from 'lucide-react';
+import { ActionButton } from '@/components/log/ActionButton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
@@ -131,19 +132,31 @@ export function GenerateConversationBox({
     }
   };
 
+  // Determine ActionButton mode based on current state
+  const getActionButtonMode = (): 'mic' | 'recording' | 'transcribing' | 'send' => {
+    if (isTranscribing) return 'transcribing';
+    if (isRecording) return 'recording';
+    if (prompt.trim()) return 'send';
+    return 'mic';
+  };
+
   return (
     <div
       className="input-card"
       style={{
+        padding: '1.5rem',
         borderColor: isFocused ? '#34A853' : '#2A332E',
-        boxShadow: isFocused ? '0 0 0 3px rgba(52, 168, 83, 0.1)' : 'none'
+        boxShadow: isFocused
+          ? '0 0 0 3px rgba(52, 168, 83, 0.15), 0 4px 20px rgba(0, 0, 0, 0.3)'
+          : '0 2px 12px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.2s ease'
       }}
     >
       {/* Top section: prompt, helper, mic */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           {!prompt && (
-            <p className="text-sm mb-1" style={{ color: '#F1F5F3' }}>
+            <p className="text-base font-medium mb-2" style={{ color: '#F1F5F3' }}>
               Describe what you'd like to generate
             </p>
           )}
@@ -157,27 +170,24 @@ export function GenerateConversationBox({
             placeholder={isRecording ? "Listening..." : (prompt ? "" : "Type or tap mic to begin")}
             disabled={isGenerating || isTranscribing}
             className={cn(
-              "min-h-[24px] max-h-[100px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0",
+              "min-h-[36px] max-h-[120px] resize-none border-0 bg-transparent p-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0",
               isRecording && "placeholder:text-[#34A853] placeholder:animate-pulse"
             )}
             style={{ color: '#F1F5F3' }}
             rows={1}
           />
         </div>
-        <button
-          onClick={handleMicClick}
-          disabled={isGenerating || isTranscribing}
-          className={cn(
-            "btn-mic flex-shrink-0",
-            isRecording && "animate-recording-pulse"
-          )}
-        >
-          <Mic className="h-5 w-5" />
-        </button>
+        <ActionButton
+          mode={getActionButtonMode()}
+          onMicClick={handleMicClick}
+          onSendClick={onGenerate}
+          disabled={isGenerating}
+          size="large"
+        />
       </div>
 
       {/* Divider */}
-      <div className="my-3" style={{ borderTop: '1px solid #2A332E' }} />
+      <div className="my-4" style={{ borderTop: '1px solid #2A332E' }} />
 
       {/* Footer */}
       <div className="flex items-center justify-between flex-wrap gap-2">

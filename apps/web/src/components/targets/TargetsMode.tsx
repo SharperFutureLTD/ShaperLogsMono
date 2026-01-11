@@ -12,6 +12,7 @@ import { TargetFilters, type TargetTypeFilter, type TargetStatusFilter } from "@
 import { StatsCards } from "@/components/progress/StatsCards";
 import { ActivityChart } from "@/components/progress/ActivityChart";
 import { TopSkillsSection } from "@/components/progress/TopSkillsSection";
+import { calculateStreak } from "@/lib/utils/analytics";
 import type { Target as TargetType } from "@/types/targets";
 
 type PeriodFilter = 'week' | 'month' | 'year';
@@ -72,38 +73,63 @@ export function TargetsMode() {
     });
   }, [targets, searchQuery, typeFilter, statusFilter]);
 
+  // Calculate streak from all entries (streak doesn't depend on period filter)
+  const streakData = useMemo(() => {
+    return calculateStreak(entries);
+  }, [entries]);
+
   // Calculate stats based on period
   const stats = useMemo(() => {
     const now = new Date();
-    let startDate: Date;
+    let periodDays: number;
 
     switch (periodFilter) {
       case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        periodDays = 7;
         break;
       case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        periodDays = 30;
         break;
       case 'year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        periodDays = 365;
         break;
     }
 
+    const startDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const previousStartDate = new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
+
+    // Current period entries
     const periodEntries = entries.filter(e => new Date(e.created_at) >= startDate);
     const allSkills = periodEntries.flatMap(e => e.skills || []);
     const uniqueSkills = new Set(allSkills);
 
+    // Previous period entries (for comparison)
+    const previousPeriodEntries = entries.filter(e => {
+      const date = new Date(e.created_at);
+      return date >= previousStartDate && date < startDate;
+    });
+    const previousSkills = new Set(previousPeriodEntries.flatMap(e => e.skills || []));
+
+    // Calculate growth percentage
+    let logsGrowth = 0;
+    if (previousPeriodEntries.length > 0) {
+      logsGrowth = Math.round(((periodEntries.length - previousPeriodEntries.length) / previousPeriodEntries.length) * 100);
+    } else if (periodEntries.length > 0) {
+      logsGrowth = 100;
+    }
+
+    // Calculate new skills (difference from previous period)
+    const newSkills = Math.max(0, uniqueSkills.size - previousSkills.size);
+
     return {
       logsCount: periodEntries.length,
-      logsGrowth: 12, // Placeholder - would calculate from previous period
+      logsGrowth,
       skillsCount: uniqueSkills.size,
-      newSkills: 3, // Placeholder
-      currentStreak: 5, // Placeholder - would calculate from entries
-      bestStreak: 14, // Placeholder
-      hoursLogged: 42, // Placeholder
-      hoursGrowth: 8, // Placeholder
+      newSkills,
+      currentStreak: streakData.currentStreak,
+      bestStreak: streakData.bestStreak,
     };
-  }, [entries, periodFilter]);
+  }, [entries, periodFilter, streakData]);
 
   // Activity chart data
   const activityData = useMemo(() => {

@@ -80,7 +80,7 @@ export function LogMode() {
   const isReviewing = status === "review";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Unified conversation box */}
       <LogConversationBox
         messages={messages}

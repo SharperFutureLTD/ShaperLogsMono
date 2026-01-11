@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
 export default function AuthenticatedLayout({
   children,
@@ -18,7 +19,7 @@ export default function AuthenticatedLayout({
     }
   }, [user, loading, router])
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <DashboardSkeleton />
   if (!user) return null
 
   return <>{children}</>

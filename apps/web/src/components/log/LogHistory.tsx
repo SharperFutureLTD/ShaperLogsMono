@@ -1,6 +1,7 @@
 'use client'
 
-import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ChevronDown } from "lucide-react";
 import { LogHistoryItem } from "./LogHistoryItem";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -10,9 +11,14 @@ interface LogHistoryProps {
   entries: WorkEntry[];
   isLoading: boolean;
   onDelete?: (id: string) => void;
+  initialLimit?: number;
 }
 
-export function LogHistory({ entries, isLoading, onDelete }: LogHistoryProps) {
+const DEFAULT_LIMIT = 3;
+
+export function LogHistory({ entries, isLoading, onDelete, initialLimit = DEFAULT_LIMIT }: LogHistoryProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -34,11 +40,33 @@ export function LogHistory({ entries, isLoading, onDelete }: LogHistoryProps) {
     );
   }
 
+  const displayedEntries = showAll ? entries : entries.slice(0, initialLimit);
+  const hiddenCount = entries.length - initialLimit;
+  const hasMore = entries.length > initialLimit;
+
   return (
     <div className="space-y-3">
-      {entries.map((entry) => (
+      {displayedEntries.map((entry) => (
         <LogHistoryItem key={entry.id} entry={entry} onDelete={onDelete} />
       ))}
+
+      {/* Show more / Show less button */}
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-[#1C2420]"
+          style={{
+            background: '#141A17',
+            color: '#9CA898',
+            border: '1px dashed #2A332E'
+          }}
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`}
+          />
+          {showAll ? 'Show less' : `View ${hiddenCount} more log${hiddenCount === 1 ? '' : 's'}`}
+        </button>
+      )}
     </div>
   );
 }
